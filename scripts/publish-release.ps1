@@ -55,7 +55,7 @@ try {
   $url = "https://github.com/$Repo/releases/download/$tag/$name"
   $abi = "$JellyfinVersion.0"
   & (Join-Path $PSScriptRoot 'update-manifest.ps1') -Version $Version -TargetAbi $abi -SourceUrl $url -Checksum $md5 `
-    -Changelog "https://github.com/$Repo/releases/tag/$tag"
+    -Changelog $Notes
   Invoke-Native 'git commit' { git add manifest.json; git commit -m "manifest: $Version" --quiet }
   Invoke-Native 'git push' { git push origin HEAD }
 

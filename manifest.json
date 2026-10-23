@@ -1,21 +1,21 @@
 ﻿[
-    {
-        "guid":  "d7904f73-f7e5-4b0a-ae99-a33d1afd11b1",
-        "name":  "Batch Collections",
-        "overview":  "Add many movies and shows to a collection at once by pasting a list of titles.",
-        "description":  "Paste a list of titles (one per line, optional year), type a collection name and click Preview. Batch Collections matches each line against your library and shows what it found. Apply adds the confirmed items to the collection, creating it if needed. Titles that aren\u0027t in your library are reported.",
-        "owner":  "xRaid3nx",
-        "category":  "General",
-        "imageUrl":  "https://raw.githubusercontent.com/xRaid3nx/JellyfinCollectionsPlugin/main/docs/images/thumb.png",
-        "versions":  [
-                         {
-                             "version":  "1.0.0.0",
-                             "changelog":  "https://github.com/xRaid3nx/JellyfinCollectionsPlugin/releases/tag/v1.0.0.0",
-                             "targetAbi":  "12.2.0.0",
-                             "sourceUrl":  "https://github.com/xRaid3nx/JellyfinCollectionsPlugin/releases/download/v1.0.0.0/batch-collections_1.0.0.0_jf12.2.0.zip",
-                             "checksum":  "834468bbe179e8561267352b3e1aef84",
-                             "timestamp":  "2026-10-23T20:06:27Z"
-                         }
-                     ]
-    }
+  {
+    "guid": "d7904f73-f7e5-4b0a-ae99-a33d1afd11b1",
+    "name": "Batch Collections",
+    "overview": "Add many movies and shows to a collection at once by pasting a list of titles.",
+    "description": "Paste a list of titles (one per line, optional year), type a collection name and click Preview. Batch Collections matches each line against your library and shows what it found. Apply adds the confirmed items to the collection, creating it if needed. Titles that aren't in your library are reported.",
+    "owner": "xRaid3nx",
+    "category": "General",
+    "imageUrl": "https://raw.githubusercontent.com/xRaid3nx/JellyfinCollectionsPlugin/main/docs/images/thumb.png",
+    "versions": [
+      {
+        "version": "1.0.0.0",
+        "changelog": "First release. Paste a list of titles, preview the matches, and add them to a collection in one click.",
+        "targetAbi": "12.2.0.0",
+        "sourceUrl": "https://github.com/xRaid3nx/JellyfinCollectionsPlugin/releases/download/v1.0.0.0/batch-collections_1.0.0.0_jf12.2.0.zip",
+        "checksum": "834468bbe179e8561267352b3e1aef84",
+        "timestamp": "2026-10-23T20:06:27Z"
+      }
+    ]
+  }
 ]

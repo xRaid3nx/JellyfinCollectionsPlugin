@@ -38,5 +38,6 @@ $others = @(@($plugin.versions) | ForEach-Object { $_ } | Where-Object { $_ -and
 $sorted = [object[]](@(@($entry) + $others) | Sort-Object { [version]$_.version } -Descending)
 $plugin.versions = $sorted
 
-ConvertTo-Json -InputObject @($manifest) -Depth 10 | Set-Content -LiteralPath $ManifestPath -Encoding UTF8
+$json = ConvertTo-Json -InputObject @($manifest) -Depth 10
+[System.IO.File]::WriteAllText($ManifestPath, $json + "`n", (New-Object System.Text.UTF8Encoding $false))
 Write-Host "manifest.json: $Version (targetAbi $TargetAbi) -> $SourceUrl"
