@@ -86,9 +86,17 @@ if ($service) {
 }
 
 # ---- Install -----------------------------------------------------------------
+try {
 Get-ChildItem -LiteralPath $PluginsDir -Directory -Filter "$pluginName*" -ErrorAction SilentlyContinue | ForEach-Object {
   Write-Host "    Removing old install: $($_.Name)"
-  Remove-Item -LiteralPath $_.FullName -Recurse -Force
+  # Jellyfin can hold the DLL for a few seconds after its process exits.
+  for ($attempt = 1; ; $attempt++) {
+    try { Remove-Item -LiteralPath $_.FullName -Recurse -Force -ErrorAction Stop; break }
+    catch {
+      if ($attempt -ge 20) { throw "Could not remove $($_.TargetObject): $($_.Exception.Message)" }
+      Start-Sleep -Seconds 1
+    }
+  }
 }
 
 $target = Join-Path $PluginsDir "${pluginName}_$version"
@@ -113,32 +121,32 @@ $meta = [ordered]@{
   imagePath   = Join-Path $target 'thumb.png'
   assemblies  = @()
 }
-$meta | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $target 'meta.json') -Encoding UTF8
+[System.IO.File]::WriteAllText((Join-Path $target 'meta.json'), ($meta | ConvertTo-Json), (New-Object System.Text.UTF8Encoding $false))
 Write-Step "Installed to $target"
-
-# ---- Restart -----------------------------------------------------------------
+}
+finally {
+# ---- Restart (always, so a failed install never leaves the server down) -------
 if ($NoRestart) {
   Write-Warn 'Skipping restart (-NoRestart). Restart Jellyfin to load the plugin.'
 } elseif ($restart -and $restart.Kind -eq 'Service') {
   Write-Step "Starting service $ServiceName"
   Start-Service -Name $ServiceName
 } elseif ($restart -and $restart.Kind -eq 'Process') {
-  if ($restart.Tray -and (Test-Path -LiteralPath $TrayExe)) {
-    Write-Step 'Starting Jellyfin via the tray app'
-    if (-not (Get-Process -Name 'Jellyfin.Windows.Tray' -ErrorAction SilentlyContinue)) { Start-Process -FilePath $TrayExe }
-    else { Write-Warn 'The tray app is still running; use its menu to start Jellyfin if it does not restart on its own.' }
-  } elseif ($restart.CommandLine) {
+  if ($restart.CommandLine) {
     Write-Step 'Starting jellyfin.exe with its previous command line'
     $exe = if ($restart.Path) { $restart.Path } else { $JellyfinExe }
     $quotedExe = [regex]::Escape("`"$exe`"")
     $argLine = ($restart.CommandLine -replace "^\s*($quotedExe|$([regex]::Escape($exe)))", '').Trim()
-    if ($argLine) { Start-Process -FilePath $exe -ArgumentList $argLine -WorkingDirectory (Split-Path $exe) }
-    else { Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) }
+    if ($argLine) { Start-Process -FilePath $exe -ArgumentList $argLine -WorkingDirectory (Split-Path $exe) -WindowStyle Hidden }
+    else { Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) -WindowStyle Hidden }
+  } elseif ($restart.Tray -and (Test-Path -LiteralPath $TrayExe) -and -not (Get-Process -Name 'Jellyfin.Windows.Tray' -ErrorAction SilentlyContinue)) {
+    Write-Step 'Starting Jellyfin via the tray app'
+    Start-Process -FilePath $TrayExe
   } else {
-    Write-Step "Starting jellyfin.exe --datadir `"$DataDir`""
-    Write-Warn 'Could not read the previous command line (it needs elevation). Using -DataDir.'
-    Start-Process -FilePath $JellyfinExe -ArgumentList @('--datadir', "`"$DataDir`"") -WorkingDirectory (Split-Path $JellyfinExe)
+    Write-Step "Starting jellyfin.exe --service --datadir `"$DataDir`""
+    Start-Process -FilePath $JellyfinExe -ArgumentList @('--service', '--datadir', "`"$DataDir`"") -WorkingDirectory (Split-Path $JellyfinExe) -WindowStyle Hidden
   }
+}
 }
 
 Write-Host ''
