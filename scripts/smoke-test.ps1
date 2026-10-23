@@ -176,7 +176,12 @@ try {
   $collections = Api GET 'BatchCollections/Collections' $null $token
   $dc = $collections | Where-Object { $_.Name -eq 'Disney Classics' }
   Check (@($dc).Count -eq 1 -and $dc.ItemCount -eq 6) "Collections endpoint lists 'Disney Classics' with 6 items"
-  $members = Api GET ("Items?ParentId=$($apply.CollectionId)&UserId=$($auth.User.Id)") $null $token
+  # Jellyfin saves collection members in the background, so give it a few seconds.
+  for ($i = 0; $i -lt 20; $i++) {
+    $members = Api GET ("Items?ParentId=$($apply.CollectionId)&UserId=$($auth.User.Id)") $null $token
+    if ($members.TotalRecordCount -ge 6) { break }
+    Start-Sleep -Milliseconds 500
+  }
   Check ($members.TotalRecordCount -eq 6) "Jellyfin's own Items API shows 6 items in the collection (got $($members.TotalRecordCount))"
   $rerun = Api POST 'BatchCollections/Preview' @{ List = $list; CollectionName = 'Disney Classics'; MediaTypes = 'Both' } $token
   $already = @($rerun.Lines | Where-Object { $_.Status -eq 'AlreadyInCollection' }).Count

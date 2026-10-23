@@ -19,9 +19,15 @@ namespace Jellyfin.Plugin.Collections.Services;
 /// </summary>
 public sealed class CollectionService : ICollectionService
 {
+    // Jellyfin persists new collections and their members shortly after the API call returns, so a read
+    // straight after a write can miss them. Recent writes are merged into reads until the library catches up.
+    private static readonly TimeSpan _recentWriteLifetime = TimeSpan.FromMinutes(5);
+
     private readonly ILibraryManager _libraryManager;
     private readonly ICollectionManager _collectionManager;
     private readonly ILogger<CollectionService> _logger;
+    private readonly Dictionary<Guid, RecentWrite> _recentWrites = [];
+    private readonly Lock _recentLock = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CollectionService"/> class.
@@ -48,10 +54,49 @@ public sealed class CollectionService : ICollectionService
         });
 
         var collections = new List<CollectionInfo>(boxSets.Count);
-        foreach (var boxSet in boxSets.OfType<BoxSet>())
+        lock (_recentLock)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            collections.Add(new CollectionInfo(boxSet.Id, boxSet.Name ?? string.Empty, GetMemberIds(boxSet)));
+            var now = DateTime.UtcNow;
+            foreach (var expired in _recentWrites.Where(pair => pair.Value.Expires <= now).Select(pair => pair.Key).ToList())
+            {
+                _recentWrites.Remove(expired);
+            }
+
+            foreach (var boxSet in boxSets.OfType<BoxSet>())
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var members = GetMemberIds(boxSet);
+                if (_recentWrites.TryGetValue(boxSet.Id, out var recent))
+                {
+                    if (recent.ItemIds.IsSubsetOf(members))
+                    {
+                        _recentWrites.Remove(boxSet.Id);
+                    }
+                    else
+                    {
+                        members.UnionWith(recent.ItemIds);
+                    }
+                }
+
+                collections.Add(new CollectionInfo(boxSet.Id, boxSet.Name ?? string.Empty, members));
+            }
+
+            foreach (var (id, recent) in _recentWrites.ToList())
+            {
+                if (collections.Exists(c => c.Id.Equals(id)))
+                {
+                    continue;
+                }
+
+                if (_libraryManager.GetItemById(id) is BoxSet)
+                {
+                    collections.Add(new CollectionInfo(id, recent.Name, new HashSet<Guid>(recent.ItemIds)));
+                }
+                else
+                {
+                    _recentWrites.Remove(id);
+                }
+            }
         }
 
         return collections;
@@ -70,6 +115,7 @@ public sealed class CollectionService : ICollectionService
             ItemIdList = [.. itemIds.Select(id => id.ToString("N", CultureInfo.InvariantCulture))]
         }).ConfigureAwait(false);
 
+        RememberWrite(collection.Id, name, itemIds);
         _logger.LogInformation("Batch Collections: created collection {Name} ({Id}) with {Count} items", name, collection.Id, itemIds.Count);
         return collection.Id;
     }
@@ -85,7 +131,25 @@ public sealed class CollectionService : ICollectionService
 
         cancellationToken.ThrowIfCancellationRequested();
         await _collectionManager.AddToCollectionAsync(collectionId, itemIds).ConfigureAwait(false);
+        RememberWrite(collectionId, null, itemIds);
         _logger.LogInformation("Batch Collections: added {Count} items to collection {Id}", itemIds.Count, collectionId);
+    }
+
+    private void RememberWrite(Guid collectionId, string? name, IReadOnlyCollection<Guid> itemIds)
+    {
+        lock (_recentLock)
+        {
+            if (_recentWrites.TryGetValue(collectionId, out var recent))
+            {
+                recent.ItemIds.UnionWith(itemIds);
+                _recentWrites[collectionId] = recent with { Expires = DateTime.UtcNow + _recentWriteLifetime };
+            }
+            else
+            {
+                var collectionName = name ?? _libraryManager.GetItemById(collectionId)?.Name ?? string.Empty;
+                _recentWrites[collectionId] = new RecentWrite(collectionName, [.. itemIds], DateTime.UtcNow + _recentWriteLifetime);
+            }
+        }
     }
 
     private static HashSet<Guid> GetMemberIds(BoxSet boxSet)
@@ -115,4 +179,6 @@ public sealed class CollectionService : ICollectionService
 
         return ids;
     }
+
+    private sealed record RecentWrite(string Name, HashSet<Guid> ItemIds, DateTime Expires);
 }

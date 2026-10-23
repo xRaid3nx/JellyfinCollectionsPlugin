@@ -8,10 +8,33 @@
     <div id="BatchCollectionsPage" data-role="page" class="page type-interior pluginConfigurationPage batchCollectionsPage" data-require="emby-input,emby-button,emby-select,emby-checkbox,emby-textarea">
         <style>
             .batchCollectionsPage .bc-section { margin-bottom: 2em; }
-            .batchCollectionsPage .bc-row { display: flex; flex-wrap: wrap; gap: 1em; align-items: flex-end; }
-            .batchCollectionsPage .bc-row > .bc-grow { flex: 1 1 16em; min-width: 12em; }
-            .batchCollectionsPage .bc-row > .bc-fixed { flex: 0 1 14em; min-width: 10em; }
-            .batchCollectionsPage .bc-list { font-family: Consolas, "Courier New", monospace; min-height: 16em; white-space: pre; }
+            .batchCollectionsPage .content-primary { max-width: 80em; }
+            .batchCollectionsPage .bc-layout { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(22em, 1fr); gap: 1.5em 2.5em; align-items: start; }
+            @media (max-width: 64em) { .batchCollectionsPage .bc-layout { grid-template-columns: minmax(0, 1fr); } }
+            .batchCollectionsPage .bc-field { margin-bottom: 1.4em; }
+            .batchCollectionsPage .bc-label { display: block; margin: 0 0 .4em; font-size: .95em; }
+            .batchCollectionsPage .bc-field .inputContainer, .batchCollectionsPage .bc-field .selectContainer,
+            .batchCollectionsPage .bc-row .inputContainer, .batchCollectionsPage .bc-row .selectContainer { margin: 0; }
+            .batchCollectionsPage .bc-field .fieldDescription { margin-top: .4em; }
+            .batchCollectionsPage .bc-list { display: block; width: 100%; box-sizing: border-box; resize: vertical; min-height: 10em; padding: .6em .7em; font-family: Consolas, "Courier New", monospace; font-size: .95em; line-height: 1.45; white-space: pre; overflow: auto; color: inherit; background: #292929; border: 1px solid rgba(128,128,128,.45); border-radius: .2em; }
+            .batchCollectionsPage .bc-list:focus { outline: none; border-color: #00a4dc; }
+            .batchCollectionsPage .bc-checks { display: grid; grid-template-columns: 1fr 1fr; gap: 1em; margin-bottom: 1.4em; }
+            .batchCollectionsPage .bc-checks .checkboxContainer { margin: 0; }
+            .batchCollectionsPage .bc-checks .fieldDescription { font-size: .85em; margin: .2em 0 0; padding-left: 0; }
+            .batchCollectionsPage .bc-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .75em; align-items: stretch; margin-bottom: 1.2em; }
+            .batchCollectionsPage .bc-row > div { display: flex; }
+            .batchCollectionsPage .bc-row > div > .emby-input, .batchCollectionsPage .bc-row > div > .emby-select { flex: 1 1 auto; width: 100%; height: 100%; box-sizing: border-box; }
+            .batchCollectionsPage .bc-row .bc-buttons, .batchCollectionsPage .bc-toolbar .bc-buttons { margin: 0; flex-wrap: nowrap; align-items: stretch; }
+            .batchCollectionsPage .bc-row .emby-button, .batchCollectionsPage .bc-toolbar .emby-button { height: auto; }
+            .batchCollectionsPage input.emby-input { min-height: 2.6em; box-sizing: border-box; }
+            .batchCollectionsPage .bc-toolbar { display: grid; grid-template-columns: minmax(10em, 14em) minmax(10em, 14em) auto; column-gap: .75em; align-items: stretch; margin-bottom: 1em; }
+            .batchCollectionsPage .bc-toolbar .selectContainer { margin: 0; display: flex; }
+            .batchCollectionsPage .bc-toolbar .selectContainer > .emby-select { flex: 1 1 auto; width: 100%; height: 100%; box-sizing: border-box; }
+            .batchCollectionsPage .bc-toolbar .bc-buttons { justify-self: start; }
+            @media (max-width: 40em) { .batchCollectionsPage .bc-toolbar { grid-template-columns: 1fr 1fr; } .batchCollectionsPage .bc-toolbar > span { display: none; } .batchCollectionsPage .bc-toolbar .bc-buttons { grid-column: 1 / -1; margin-top: .75em; } }
+            .batchCollectionsPage details.bc-presets { margin-top: 1em; padding: .8em 1em; border: 1px solid rgba(128,128,128,.3); border-radius: .3em; }
+            .batchCollectionsPage details.bc-presets > summary { cursor: pointer; font-size: 1.05em; }
+            .batchCollectionsPage details.bc-presets[open] > summary { margin-bottom: .8em; }
             .batchCollectionsPage .bc-buttons { display: flex; flex-wrap: wrap; gap: .5em; margin: 1em 0; }
             .batchCollectionsPage .bc-buttons .emby-button { margin: 0; }
             .batchCollectionsPage .bc-chips { display: flex; flex-wrap: wrap; gap: .5em; margin: .5em 0 1em; }
@@ -45,61 +68,75 @@
                 </div>
 
                 <form id="bcForm" class="bc-section" novalidate>
-                    <div class="inputContainer">
-                        <label class="textareaLabel" for="bcList">Titles</label>
-                        <textarea is="emby-textarea" id="bcList" class="emby-textarea bc-list" rows="16" spellcheck="false" aria-describedby="bcListHelp"></textarea>
-                        <div class="fieldDescription" id="bcListHelp"><span id="bcLineCount">0 lines</span>. Lines starting with <code>#</code> or <code>//</code> are ignored. Years may be written as <code>(1994)</code>, <code>[1994]</code>, <code>- 1994</code>, <code>, 1994</code> or <code>| 1994</code>. Up to 5,000 lines.</div>
-                    </div>
-
-                    <div class="bc-row">
-                        <div class="inputContainer bc-grow">
-                            <label class="inputLabel inputLabelUnfocused" for="bcCollectionName">Collection name</label>
-                            <input is="emby-input" id="bcCollectionName" type="text" list="bcCollectionNames" autocomplete="off" required maxlength="200" />
-                            <datalist id="bcCollectionNames"></datalist>
-                            <div class="fieldDescription" id="bcCollectionHint">Existing collections are suggested as you type. A new collection is created if the name doesn't exist.</div>
+                    <div class="bc-layout">
+                        <div class="bc-field">
+                            <label class="bc-label" for="bcList">Titles</label>
+                            <textarea id="bcList" class="bc-list" rows="12" spellcheck="false" aria-describedby="bcListHelp" placeholder="The Lion King (1994)&#10;Aladdin (1992)&#10;Frozen 2"></textarea>
+                            <div class="fieldDescription" id="bcListHelp"><span id="bcLineCount">0 lines</span>. Lines starting with <code>#</code> or <code>//</code> are ignored. Years may be written as <code>(1994)</code>, <code>[1994]</code>, <code>- 1994</code>, <code>, 1994</code> or <code>| 1994</code>. Up to 5,000 lines.</div>
                         </div>
-                        <div class="selectContainer bc-fixed">
-                            <label class="selectLabel" for="bcMediaTypes">Search in</label>
-                            <select is="emby-select" id="bcMediaTypes" class="emby-select-withcolor emby-select">
-                                <option value="Both">Movies and shows</option>
-                                <option value="Movies">Movies only</option>
-                                <option value="Shows">Shows only</option>
-                            </select>
+
+                        <div>
+                            <div class="bc-field">
+                                <label class="bc-label" for="bcCollectionName">Collection name</label>
+                                <div class="inputContainer">
+                                    <input is="emby-input" id="bcCollectionName" type="text" list="bcCollectionNames" autocomplete="off" required maxlength="200" />
+                                </div>
+                                <datalist id="bcCollectionNames"></datalist>
+                                <div class="fieldDescription" id="bcCollectionHint">Existing collections are suggested as you type. A new collection is created if the name doesn't exist.</div>
+                            </div>
+                            <div class="bc-field">
+                                <label class="bc-label" for="bcMediaTypes">Search in</label>
+                                <div class="selectContainer">
+                                    <select is="emby-select" id="bcMediaTypes" class="emby-select-withcolor emby-select">
+                                        <option value="Both">Movies and shows</option>
+                                        <option value="Movies">Movies only</option>
+                                        <option value="Shows">Shows only</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="bc-field">
+                                <label class="bc-label" for="bcYearTolerance">Year tolerance</label>
+                                <div class="selectContainer">
+                                    <select is="emby-select" id="bcYearTolerance" class="emby-select-withcolor emby-select">
+                                        <option value="0">Exact year only</option>
+                                        <option value="1">±1 year (suggest only)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="bc-checks">
+                                <div>
+                                    <div class="checkboxContainer">
+                                        <label class="emby-checkbox-label">
+                                            <input id="bcFuzzy" type="checkbox" is="emby-checkbox" checked />
+                                            <span>Fuzzy matching</span>
+                                        </label>
+                                    </div>
+                                    <div class="fieldDescription">Suggest close spellings (90%+). Never selected automatically.</div>
+                                </div>
+                                <div>
+                                    <div class="checkboxContainer">
+                                        <label class="emby-checkbox-label">
+                                            <input id="bcLock" type="checkbox" is="emby-checkbox" />
+                                            <span>Lock metadata</span>
+                                        </label>
+                                    </div>
+                                    <div class="fieldDescription">Only applies when a new collection is created.</div>
+                                </div>
+                            </div>
+
+                            <div class="bc-buttons">
+                                <button is="emby-button" type="submit" id="bcPreview" class="raised button-submit emby-button block"><span>Preview</span></button>
+                            </div>
                         </div>
-                        <div class="selectContainer bc-fixed">
-                            <label class="selectLabel" for="bcYearTolerance">Year tolerance</label>
-                            <select is="emby-select" id="bcYearTolerance" class="emby-select-withcolor emby-select">
-                                <option value="0">Exact year only</option>
-                                <option value="1">±1 year (suggest, don't auto-select)</option>
-                            </select>
-                        </div>
                     </div>
 
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="bcFuzzy" type="checkbox" is="emby-checkbox" checked />
-                            <span>Fuzzy matching</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Suggest close spellings (90% similar or better). Suggestions are never selected automatically.</div>
-                    </div>
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="bcLock" type="checkbox" is="emby-checkbox" />
-                            <span>Lock collection metadata</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Only applies when a new collection is created.</div>
-                    </div>
-
-                    <div class="bc-buttons">
-                        <button is="emby-button" type="submit" id="bcPreview" class="raised button-submit emby-button"><span>Preview</span></button>
-                    </div>
-
-                    <details class="bc-section" id="bcPresetsPanel">
+                    <details class="bc-presets" id="bcPresetsPanel">
                         <summary>Presets</summary>
                         <p class="fieldDescription">Save a list so you can re-run it later, for example after adding new movies.</p>
+                        <label class="bc-label" for="bcPresetSelect">Saved presets</label>
                         <div class="bc-row">
-                            <div class="selectContainer bc-grow">
-                                <label class="selectLabel" for="bcPresetSelect">Saved presets</label>
+                            <div class="selectContainer">
                                 <select is="emby-select" id="bcPresetSelect" class="emby-select-withcolor emby-select"></select>
                             </div>
                             <div class="bc-buttons">
@@ -107,9 +144,9 @@
                                 <button is="emby-button" type="button" id="bcPresetDelete" class="raised emby-button"><span>Delete</span></button>
                             </div>
                         </div>
+                        <label class="bc-label" for="bcPresetName">Preset name</label>
                         <div class="bc-row">
-                            <div class="inputContainer bc-grow">
-                                <label class="inputLabel inputLabelUnfocused" for="bcPresetName">Preset name</label>
+                            <div class="inputContainer">
                                 <input is="emby-input" id="bcPresetName" type="text" maxlength="100" placeholder="Disney Animated Classics" />
                             </div>
                             <div class="bc-buttons">
@@ -123,13 +160,14 @@
                     <h2 class="sectionTitle">Preview</h2>
                     <div id="bcWarnings"></div>
                     <div class="bc-chips" id="bcChips"></div>
-                    <div class="bc-row">
-                        <div class="selectContainer bc-fixed">
-                            <label class="selectLabel" for="bcFilter">Show</label>
+                    <div class="bc-toolbar">
+                        <label class="bc-label" for="bcFilter">Show</label>
+                        <label class="bc-label" for="bcSort">Order</label>
+                        <span></span>
+                        <div class="selectContainer">
                             <select is="emby-select" id="bcFilter" class="emby-select-withcolor emby-select"></select>
                         </div>
-                        <div class="selectContainer bc-fixed">
-                            <label class="selectLabel" for="bcSort">Order</label>
+                        <div class="selectContainer">
                             <select is="emby-select" id="bcSort" class="emby-select-withcolor emby-select">
                                 <option value="line">List order</option>
                                 <option value="status">Group by status</option>
