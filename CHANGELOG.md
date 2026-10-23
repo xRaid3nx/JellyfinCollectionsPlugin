@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here. Versions use Jellyfin's four-part format.
 
+## 1.0.1.0
+
+- New two-column layout: the list on the left, settings and Preview on the right. It stacks into one column on narrow screens.
+- The Titles box now fills its column, and its label sits above it.
+- Preset rows and the results toolbar are lined up with their buttons.
+- Fix: applying or previewing again within a second or so of an Apply now correctly sees the items that were just added (and never creates a second collection with the same name).
+
 ## 1.0.0.0
 
 First release, for Jellyfin 12.2.
