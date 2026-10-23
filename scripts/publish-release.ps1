@@ -19,6 +19,14 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+
+# git and gh write progress to stderr; PowerShell 5.1 turns that into errors when redirected.
+function Invoke-Native([string]$What, [scriptblock]$Command) {
+  $ErrorActionPreference = 'Continue'
+  & $Command 2>&1 | ForEach-Object { Write-Host "    $_" }
+  if ($LASTEXITCODE -ne 0) { throw "$What failed (exit code $LASTEXITCODE)." }
+}
+
 Push-Location $repoRoot
 try {
   if (git status --porcelain) { throw 'Working tree has uncommitted changes. Commit them first.' }
@@ -37,22 +45,19 @@ try {
   $md5 = (Get-FileHash -LiteralPath $zip -Algorithm MD5).Hash.ToLowerInvariant()
 
   Write-Host "==> Pushing commits and creating GitHub release $tag"
-  git push origin HEAD
-  if ($LASTEXITCODE -ne 0) { throw 'git push failed.' }
+  Invoke-Native 'git push' { git push origin HEAD }
   if (-not $Notes) { $Notes = "Batch Collections $Version for Jellyfin $JellyfinVersion. See CHANGELOG.md." }
-  & gh release create $tag $zip --repo $Repo --target (git rev-parse HEAD) --title "Batch Collections $Version" --notes $Notes
-  if ($LASTEXITCODE -ne 0) { throw 'gh release create failed.' }
-  git fetch origin "refs/tags/${tag}:refs/tags/$tag" --quiet
+  $head = git rev-parse HEAD
+  Invoke-Native 'gh release create' { gh release create $tag $zip --repo $Repo --target $head --title "Batch Collections $Version" --notes $Notes }
+  Invoke-Native 'git fetch tag' { git fetch origin "refs/tags/${tag}:refs/tags/$tag" --quiet }
 
   Write-Host "==> Updating manifest.json"
   $url = "https://github.com/$Repo/releases/download/$tag/$name"
   $abi = "$JellyfinVersion.0"
   & (Join-Path $PSScriptRoot 'update-manifest.ps1') -Version $Version -TargetAbi $abi -SourceUrl $url -Checksum $md5 `
     -Changelog "https://github.com/$Repo/releases/tag/$tag"
-  git add manifest.json
-  git commit -m "manifest: $Version" --quiet
-  git push origin HEAD
-  if ($LASTEXITCODE -ne 0) { throw 'git push failed.' }
+  Invoke-Native 'git commit' { git add manifest.json; git commit -m "manifest: $Version" --quiet }
+  Invoke-Native 'git push' { git push origin HEAD }
 
   Write-Host ""
   Write-Host "Released $tag. Repository URL for Jellyfin:"
