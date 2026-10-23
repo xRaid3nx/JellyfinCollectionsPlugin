@@ -1,0 +1,23 @@
+bin/
+obj/
+.vs/
+.idea/
+TestResults/
+artifacts/
+.nuget/
+*.user
+*.suo
+*.log
+*.zip
+
+# Secrets
+.env
+.env.*
+**/appsettings.Development.json
+**/secrets.json
+
+node_modules/
+
+# Cursor chat archives (local only)
+Chats/
+!Chats/.gitkeep

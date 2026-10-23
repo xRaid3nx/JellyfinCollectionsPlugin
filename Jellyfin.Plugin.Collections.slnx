@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Jellyfin.Plugin.Collections/Jellyfin.Plugin.Collections.csproj" />
+    <Project Path="src/Jellyfin.Plugin.Collections.Tests/Jellyfin.Plugin.Collections.Tests.csproj" />
+  </Folder>
+</Solution>

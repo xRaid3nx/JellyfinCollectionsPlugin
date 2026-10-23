@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Batch Collections</title>
+</head>
+<body>
+    <div id="BatchCollectionsPage" data-role="page" class="page type-interior pluginConfigurationPage batchCollectionsPage" data-require="emby-input,emby-button,emby-select,emby-checkbox,emby-textarea">
+        <style>
+            .batchCollectionsPage .bc-section { margin-bottom: 2em; }
+            .batchCollectionsPage .bc-row { display: flex; flex-wrap: wrap; gap: 1em; align-items: flex-end; }
+            .batchCollectionsPage .bc-row > .bc-grow { flex: 1 1 16em; min-width: 12em; }
+            .batchCollectionsPage .bc-row > .bc-fixed { flex: 0 1 14em; min-width: 10em; }
+            .batchCollectionsPage .bc-list { font-family: Consolas, "Courier New", monospace; min-height: 16em; white-space: pre; }
+            .batchCollectionsPage .bc-buttons { display: flex; flex-wrap: wrap; gap: .5em; margin: 1em 0; }
+            .batchCollectionsPage .bc-buttons .emby-button { margin: 0; }
+            .batchCollectionsPage .bc-chips { display: flex; flex-wrap: wrap; gap: .5em; margin: .5em 0 1em; }
+            .batchCollectionsPage .bc-chip, .batchCollectionsPage .bc-badge { display: inline-block; padding: .2em .6em; border-radius: 1em; font-size: .85em; white-space: nowrap; background: rgba(128,128,128,.25); }
+            .batchCollectionsPage .bc-s-Matched { background: rgba(46,160,67,.35); }
+            .batchCollectionsPage .bc-s-AlreadyInCollection { background: rgba(128,128,128,.3); }
+            .batchCollectionsPage .bc-s-Ambiguous { background: rgba(0,164,220,.35); }
+            .batchCollectionsPage .bc-s-PossibleYearOffByOne, .batchCollectionsPage .bc-s-PossibleFuzzy { background: rgba(219,154,4,.4); }
+            .batchCollectionsPage .bc-s-YearMismatch { background: rgba(200,90,20,.4); }
+            .batchCollectionsPage .bc-s-NotFound { background: rgba(203,36,49,.4); }
+            .batchCollectionsPage .bc-tablewrap { overflow-x: auto; max-height: 65vh; overflow-y: auto; border: 1px solid rgba(128,128,128,.3); border-radius: .3em; }
+            .batchCollectionsPage table.bc-table { width: 100%; border-collapse: collapse; }
+            .batchCollectionsPage .bc-table th, .batchCollectionsPage .bc-table td { padding: .45em .6em; text-align: left; vertical-align: middle; border-bottom: 1px solid rgba(128,128,128,.2); }
+            .batchCollectionsPage .bc-table th { position: sticky; top: 0; background: #202020; z-index: 1; }
+            .batchCollectionsPage .bc-table tr.bc-dim td { opacity: .55; }
+            .batchCollectionsPage .bc-table select { max-width: 28em; width: 100%; padding: .3em; background: #2b2b2b; color: inherit; border: 1px solid rgba(128,128,128,.5); border-radius: .2em; }
+            .batchCollectionsPage .bc-note { font-size: .85em; opacity: .75; }
+            .batchCollectionsPage .bc-raw { font-family: Consolas, "Courier New", monospace; font-size: .9em; }
+            .batchCollectionsPage .bc-counter { font-size: 1.1em; margin: .75em 0; }
+            .batchCollectionsPage .bc-warning { padding: .6em .8em; border-left: .3em solid #db9a04; background: rgba(219,154,4,.15); margin: .5em 0; }
+            .batchCollectionsPage .bc-hidden { display: none !important; }
+            .batchCollectionsPage .bc-table input[type=checkbox] { width: 1.2em; height: 1.2em; cursor: pointer; }
+        </style>
+        <div data-role="content">
+            <div class="content-primary">
+                <div class="verticalSection">
+                    <div class="sectionTitleContainer flex align-items-center">
+                        <h2 class="sectionTitle">Batch Collections</h2>
+                    </div>
+                    <p class="fieldDescription">Paste a list of titles, one per line, with an optional year such as <code>The Lion King (1994)</code>. Preview shows what matches your library; nothing changes until you click Apply.</p>
+                </div>
+
+                <form id="bcForm" class="bc-section" novalidate>
+                    <div class="inputContainer">
+                        <label class="textareaLabel" for="bcList">Titles</label>
+                        <textarea is="emby-textarea" id="bcList" class="emby-textarea bc-list" rows="16" spellcheck="false" aria-describedby="bcListHelp"></textarea>
+                        <div class="fieldDescription" id="bcListHelp"><span id="bcLineCount">0 lines</span>. Lines starting with <code>#</code> or <code>//</code> are ignored. Years may be written as <code>(1994)</code>, <code>[1994]</code>, <code>- 1994</code>, <code>, 1994</code> or <code>| 1994</code>. Up to 5,000 lines.</div>
+                    </div>
+
+                    <div class="bc-row">
+                        <div class="inputContainer bc-grow">
+                            <label class="inputLabel inputLabelUnfocused" for="bcCollectionName">Collection name</label>
+                            <input is="emby-input" id="bcCollectionName" type="text" list="bcCollectionNames" autocomplete="off" required maxlength="200" />
+                            <datalist id="bcCollectionNames"></datalist>
+                            <div class="fieldDescription" id="bcCollectionHint">Existing collections are suggested as you type. A new collection is created if the name doesn't exist.</div>
+                        </div>
+                        <div class="selectContainer bc-fixed">
+                            <label class="selectLabel" for="bcMediaTypes">Search in</label>
+                            <select is="emby-select" id="bcMediaTypes" class="emby-select-withcolor emby-select">
+                                <option value="Both">Movies and shows</option>
+                                <option value="Movies">Movies only</option>
+                                <option value="Shows">Shows only</option>
+                            </select>
+                        </div>
+                        <div class="selectContainer bc-fixed">
+                            <label class="selectLabel" for="bcYearTolerance">Year tolerance</label>
+                            <select is="emby-select" id="bcYearTolerance" class="emby-select-withcolor emby-select">
+                                <option value="0">Exact year only</option>
+                                <option value="1">±1 year (suggest, don't auto-select)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="bcFuzzy" type="checkbox" is="emby-checkbox" checked />
+                            <span>Fuzzy matching</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Suggest close spellings (90% similar or better). Suggestions are never selected automatically.</div>
+                    </div>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="bcLock" type="checkbox" is="emby-checkbox" />
+                            <span>Lock collection metadata</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Only applies when a new collection is created.</div>
+                    </div>
+
+                    <div class="bc-buttons">
+                        <button is="emby-button" type="submit" id="bcPreview" class="raised button-submit emby-button"><span>Preview</span></button>
+                    </div>
+
+                    <details class="bc-section" id="bcPresetsPanel">
+                        <summary>Presets</summary>
+                        <p class="fieldDescription">Save a list so you can re-run it later, for example after adding new movies.</p>
+                        <div class="bc-row">
+                            <div class="selectContainer bc-grow">
+                                <label class="selectLabel" for="bcPresetSelect">Saved presets</label>
+                                <select is="emby-select" id="bcPresetSelect" class="emby-select-withcolor emby-select"></select>
+                            </div>
+                            <div class="bc-buttons">
+                                <button is="emby-button" type="button" id="bcPresetLoad" class="raised emby-button"><span>Load</span></button>
+                                <button is="emby-button" type="button" id="bcPresetDelete" class="raised emby-button"><span>Delete</span></button>
+                            </div>
+                        </div>
+                        <div class="bc-row">
+                            <div class="inputContainer bc-grow">
+                                <label class="inputLabel inputLabelUnfocused" for="bcPresetName">Preset name</label>
+                                <input is="emby-input" id="bcPresetName" type="text" maxlength="100" placeholder="Disney Animated Classics" />
+                            </div>
+                            <div class="bc-buttons">
+                                <button is="emby-button" type="button" id="bcPresetSave" class="raised emby-button"><span>Save current list</span></button>
+                            </div>
+                        </div>
+                    </details>
+                </form>
+
+                <div id="bcResults" class="bc-section bc-hidden" aria-live="polite">
+                    <h2 class="sectionTitle">Preview</h2>
+                    <div id="bcWarnings"></div>
+                    <div class="bc-chips" id="bcChips"></div>
+                    <div class="bc-row">
+                        <div class="selectContainer bc-fixed">
+                            <label class="selectLabel" for="bcFilter">Show</label>
+                            <select is="emby-select" id="bcFilter" class="emby-select-withcolor emby-select"></select>
+                        </div>
+                        <div class="selectContainer bc-fixed">
+                            <label class="selectLabel" for="bcSort">Order</label>
+                            <select is="emby-select" id="bcSort" class="emby-select-withcolor emby-select">
+                                <option value="line">List order</option>
+                                <option value="status">Group by status</option>
+                            </select>
+                        </div>
+                        <div class="bc-buttons">
+                            <button is="emby-button" type="button" id="bcSelectMatched" class="raised emby-button"><span>Select all matched</span></button>
+                            <button is="emby-button" type="button" id="bcClearAll" class="raised emby-button"><span>Clear all</span></button>
+                        </div>
+                    </div>
+                    <div class="bc-tablewrap">
+                        <table class="bc-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col"><span class="bc-hidden">Add</span></th>
+                                    <th scope="col">#</th>
+                                    <th scope="col">Status</th>
+                                    <th scope="col">Your line</th>
+                                    <th scope="col">Library match</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bcRows"></tbody>
+                        </table>
+                    </div>
+                    <div class="bc-counter" id="bcCounter"></div>
+                    <div class="bc-buttons">
+                        <button is="emby-button" type="button" id="bcApply" class="raised button-submit emby-button" disabled><span>Apply</span></button>
+                    </div>
+                </div>
+
+                <div id="bcReport" class="bc-section bc-hidden" aria-live="polite">
+                    <h2 class="sectionTitle">Report</h2>
+                    <div id="bcReportSummary"></div>
+                    <div class="bc-chips" id="bcReportChips"></div>
+                    <div class="bc-buttons">
+                        <button is="emby-button" type="button" id="bcCopyNotFound" class="raised emby-button"><span>Copy "Not found"</span></button>
+                        <button is="emby-button" type="button" id="bcCopyReport" class="raised emby-button"><span>Copy full report</span></button>
+                    </div>
+                    <div class="bc-tablewrap">
+                        <table class="bc-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">#</th>
+                                    <th scope="col">Your line</th>
+                                    <th scope="col">Outcome</th>
+                                    <th scope="col">Item</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bcReportRows"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script type="text/javascript">
+            (function () {
+                'use strict';
+
+                var pluginId = 'd7904f73-f7e5-4b0a-ae99-a33d1afd11b1';
+                var maxLines = 5000;
+                var maxChars = 1000000;
+                var page = document.querySelector('#BatchCollectionsPage');
+                var $ = function (selector) { return page.querySelector(selector); };
+
+                var statusInfo = {
+                    Matched: { label: 'Matched', order: 0 },
+                    Ambiguous: { label: 'Choose one', order: 1 },
+                    PossibleYearOffByOne: { label: 'Year off by 1', order: 2 },
+                    PossibleFuzzy: { label: 'Close spelling', order: 3 },
+                    YearMismatch: { label: 'Different year', order: 4 },
+                    AlreadyInCollection: { label: 'Already in collection', order: 5 },
+                    NotFound: { label: 'Not found', order: 6 }
+                };
+
+                var state = { config: null, preview: null, rows: [], collections: [], lastReport: null };
+
+                function el(tag, props, children) {
+                    var node = document.createElement(tag);
+                    if (props) {
+                        Object.keys(props).forEach(function (key) {
+                            if (key === 'text') { node.textContent = props[key]; }
+                            else if (key === 'className') { node.className = props[key]; }
+                            else if (key.indexOf('on') === 0) { node.addEventListener(key.substring(2), props[key]); }
+                            else { node.setAttribute(key, props[key]); }
+                        });
+                    }
+                    (children || []).forEach(function (child) {
+                        if (child !== null && child !== undefined) {
+                            node.appendChild(typeof child === 'string' ? document.createTextNode(child) : child);
+                        }
+                    });
+                    return node;
+                }
+
+                function clear(node) {
+                    while (node.firstChild) { node.removeChild(node.firstChild); }
+                }
+
+                function alertMessage(message) {
+                    Dashboard.alert({ title: 'Batch Collections', message: message });
+                }
+
+                function countLines(text) {
+                    if (!text) { return 0; }
+                    return text.split(/\r\n|\n|\r/).length;
+                }
+
+                function nameWithYear(candidate, missing) {
+                    if (!candidate.Year) { return candidate.Name + missing; }
+                    var tag = '(' + candidate.Year + ')';
+                    var name = candidate.Name;
+                    return name.slice(-tag.length) === tag ? name : name + ' ' + tag;
+                }
+
+                function itemLabel(candidate) {
+                    var label = nameWithYear(candidate, ' (no year)');
+                    var parts = [label, candidate.Kind === 'Series' ? 'Series' : 'Movie'];
+                    if (candidate.LibraryName) { parts.push(candidate.LibraryName); }
+                    var text = parts.join(' · ');
+                    if (candidate.Similarity) { text += ' · ' + Math.round(candidate.Similarity * 100) + '% similar'; }
+                    if (candidate.InCollection) { text += ' · already in collection'; }
+                    return text;
+                }
+
+                function shortLabel(candidate) {
+                    return nameWithYear(candidate, '');
+                }
+
+                // ---------- API ----------
+
+                function readError(err) {
+                    if (err && typeof err.json === 'function') {
+                        return err.json().then(function (body) {
+                            return (body && (body.Message || body.message || body.title)) || ('Request failed (' + err.status + ').');
+                        }, function () {
+                            return 'Request failed (' + err.status + ').';
+                        });
+                    }
+                    return Promise.resolve((err && err.message) || 'Request failed. Check the server log.');
+                }
+
+                function post(path, body) {
+                    return ApiClient.ajax({
+                        type: 'POST',
+                        url: ApiClient.getUrl(path),
+                        data: JSON.stringify(body),
+                        contentType: 'application/json',
+                        dataType: 'json'
+                    });
+                }
+
+                function loadCollections() {
+                    return ApiClient.ajax({ type: 'GET', url: ApiClient.getUrl('BatchCollections/Collections'), dataType: 'json' })
+                        .then(function (list) {
+                            state.collections = list || [];
+                            var datalist = $('#bcCollectionNames');
+                            clear(datalist);
+                            state.collections.forEach(function (c) {
+                                datalist.appendChild(el('option', { value: c.Name, label: c.ItemCount + ' items' }));
+                            });
+                            updateCollectionHint();
+                        }, function () { /* suggestions are optional */ });
+                }
+
+                function updateCollectionHint() {
+                    var name = $('#bcCollectionName').value.trim().toLowerCase();
+                    var hint = $('#bcCollectionHint');
+                    if (!name) {
+                        hint.textContent = 'Existing collections are suggested as you type. A new collection is created if the name doesn\'t exist.';
+                        return;
+                    }
+                    var match = state.collections.filter(function (c) { return c.Name.trim().toLowerCase() === name; });
+                    hint.textContent = match.length
+                        ? 'Existing collection (' + match[0].ItemCount + ' items). New items will be added; nothing is removed.'
+                        : 'New collection. It will be created when you click Apply.';
+                }
+
+                // ---------- Configuration and presets ----------
+
+                function loadConfig() {
+                    return ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        state.config = config;
+                        $('#bcMediaTypes').value = config.LastMediaTypes || 'Both';
+                        $('#bcYearTolerance').value = String(config.LastYearTolerance || 0);
+                        $('#bcFuzzy').checked = config.LastFuzzy !== false;
+                        $('#bcLock').checked = !!config.LastLockMetadata;
+                        if (!$('#bcCollectionName').value && config.LastCollectionName) {
+                            $('#bcCollectionName').value = config.LastCollectionName;
+                        }
+                        renderPresets();
+                    });
+                }
+
+                function saveConfig() {
+                    if (!state.config) { return Promise.resolve(); }
+                    return ApiClient.updatePluginConfiguration(pluginId, state.config);
+                }
+
+                function rememberOptions() {
+                    if (!state.config) { return; }
+                    state.config.LastMediaTypes = $('#bcMediaTypes').value;
+                    state.config.LastYearTolerance = parseInt($('#bcYearTolerance').value, 10) || 0;
+                    state.config.LastFuzzy = $('#bcFuzzy').checked;
+                    state.config.LastLockMetadata = $('#bcLock').checked;
+                    state.config.LastCollectionName = $('#bcCollectionName').value.trim();
+                    saveConfig().catch(function () { /* remembering options is best effort */ });
+                }
+
+                function presets() {
+                    if (!state.config) { return []; }
+                    if (!Array.isArray(state.config.Presets)) { state.config.Presets = []; }
+                    return state.config.Presets;
+                }
+
+                function renderPresets() {
+                    var select = $('#bcPresetSelect');
+                    clear(select);
+                    var list = presets().slice().sort(function (a, b) { return a.Name.localeCompare(b.Name); });
+                    if (!list.length) {
+                        select.appendChild(el('option', { value: '', text: 'No presets saved yet' }));
+                    }
+                    list.forEach(function (p) {
+                        select.appendChild(el('option', { value: p.Name, text: p.Name + ' (' + countLines(p.Text) + ' lines)' }));
+                    });
+                }
+
+                function findPreset(name) {
+                    var lower = name.toLowerCase();
+                    return presets().filter(function (p) { return p.Name.toLowerCase() === lower; })[0];
+                }
+
+                function onPresetLoad() {
+                    var preset = findPreset($('#bcPresetSelect').value || '');
+                    if (!preset) { return; }
+                    $('#bcList').value = preset.Text;
+                    if (preset.LastCollectionName) { $('#bcCollectionName').value = preset.LastCollectionName; }
+                    $('#bcPresetName').value = preset.Name;
+                    updateLineCount();
+                    updateCollectionHint();
+                }
+
+                function onPresetSave() {
+                    var name = $('#bcPresetName').value.trim();
+                    var text = $('#bcList').value;
+                    if (!name) { alertMessage('Enter a preset name first.'); return; }
+                    if (!text.trim()) { alertMessage('The list is empty, so there is nothing to save.'); return; }
+                    if (text.length > maxChars) { alertMessage('The list is too large to save.'); return; }
+                    var existing = findPreset(name);
+                    if (existing && !window.confirm('Replace the preset "' + existing.Name + '"?')) { return; }
+                    if (existing) {
+                        existing.Text = text;
+                        existing.LastCollectionName = $('#bcCollectionName').value.trim();
+                    } else {
+                        presets().push({ Name: name, Text: text, LastCollectionName: $('#bcCollectionName').value.trim() });
+                    }
+                    Dashboard.showLoadingMsg();
+                    saveConfig().then(function () {
+                        Dashboard.hideLoadingMsg();
+                        renderPresets();
+                        $('#bcPresetSelect').value = name;
+                    }, function () {
+                        Dashboard.hideLoadingMsg();
+                        alertMessage('Could not save the preset.');
+                    });
+                }
+
+                function onPresetDelete() {
+                    var preset = findPreset($('#bcPresetSelect').value || '');
+                    if (!preset) { return; }
+                    if (!window.confirm('Delete the preset "' + preset.Name + '"?')) { return; }
+                    state.config.Presets = presets().filter(function (p) { return p !== preset; });
+                    Dashboard.showLoadingMsg();
+                    saveConfig().then(function () {
+                        Dashboard.hideLoadingMsg();
+                        renderPresets();
+                    }, function () {
+                        Dashboard.hideLoadingMsg();
+                        alertMessage('Could not delete the preset.');
+                    });
+                }
+
+                // ---------- Preview ----------
+
+                function updateLineCount() {
+                    var n = countLines($('#bcList').value);
+                    $('#bcLineCount').textContent = n.toLocaleString() + (n === 1 ? ' line' : ' lines');
+                }
+
+                function onPreview(e) {
+                    e.preventDefault();
+                    var list = $('#bcList').value;
+                    var name = $('#bcCollectionName').value.trim();
+                    if (!list.trim()) { alertMessage('Paste at least one title.'); return false; }
+                    if (!name) { alertMessage('Enter a collection name.'); $('#bcCollectionName').focus(); return false; }
+                    if (list.length > maxChars) { alertMessage('The list is larger than 1 MB. Split it into smaller lists.'); return false; }
+                    if (countLines(list) > maxLines) { alertMessage('The list has more than 5,000 lines. Split it into smaller lists.'); return false; }
+
+                    rememberOptions();
+                    Dashboard.showLoadingMsg();
+                    post('BatchCollections/Preview', {
+                        List: list,
+                        CollectionName: name,
+                        MediaTypes: $('#bcMediaTypes').value,
+                        YearTolerance: parseInt($('#bcYearTolerance').value, 10) || 0,
+                        Fuzzy: $('#bcFuzzy').checked
+                    }).then(function (response) {
+                        Dashboard.hideLoadingMsg();
+                        showPreview(response);
+                    }, function (err) {
+                        Dashboard.hideLoadingMsg();
+                        readError(err).then(alertMessage);
+                    });
+                    return false;
+                }
+
+                function showPreview(response) {
+                    state.preview = response;
+                    state.rows = response.Lines.map(function (line) {
+                        var choice = line.SelectedId || '';
+                        if (!choice && line.Candidates.length === 1 && line.Status !== 'NotFound') {
+                            choice = line.Candidates[0].Id;
+                        }
+                        return { line: line, checked: !!line.Selected, choice: choice };
+                    });
+
+                    $('#bcReport').classList.add('bc-hidden');
+                    $('#bcResults').classList.remove('bc-hidden');
+                    renderWarnings();
+                    renderChips($('#bcChips'), response.Counts, response.Lines.length);
+                    renderFilter();
+                    renderRows();
+                    $('#bcResults').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+
+                function renderWarnings() {
+                    var box = $('#bcWarnings');
+                    clear(box);
+                    var p = state.preview;
+                    var messages = [];
+                    if (p.Collection.Warning) { messages.push(p.Collection.Warning); }
+                    if (p.LibraryItemCount === 0) { messages.push('No items of the selected type were found in your library. Check "Search in", and make sure the library has been scanned.'); }
+                    if (p.DuplicateLines.length) {
+                        messages.push(p.DuplicateLines.length + ' duplicate line(s) skipped: ' + p.DuplicateLines.map(function (d) {
+                            return 'line ' + d.LineNumber + ' repeats line ' + d.DuplicateOfLine;
+                        }).join('; ') + '.');
+                    }
+                    messages.forEach(function (m) { box.appendChild(el('div', { className: 'bc-warning', text: m })); });
+                    box.appendChild(el('p', { className: 'fieldDescription', text: 'Searched ' + p.LibraryItemCount.toLocaleString() + ' library items. ' + (p.Collection.Exists
+                        ? '"' + p.Collection.Name + '" already exists with ' + p.Collection.ItemCount + ' items.'
+                        : '"' + p.Collection.Name + '" is a new collection.') }));
+                }
+
+                function renderChips(container, counts, total) {
+                    clear(container);
+                    container.appendChild(el('span', { className: 'bc-chip', text: total + ' lines' }));
+                    Object.keys(statusInfo).sort(function (a, b) { return statusInfo[a].order - statusInfo[b].order; }).forEach(function (status) {
+                        var n = counts[status] || 0;
+                        if (n) { container.appendChild(el('span', { className: 'bc-chip bc-s-' + status, text: statusInfo[status].label + ': ' + n })); }
+                    });
+                }
+
+                function renderFilter() {
+                    var select = $('#bcFilter');
+                    var current = select.value || 'all';
+                    clear(select);
+                    select.appendChild(el('option', { value: 'all', text: 'All lines' }));
+                    select.appendChild(el('option', { value: 'review', text: 'Needs review' }));
+                    Object.keys(statusInfo).forEach(function (status) {
+                        if (state.preview.Counts[status]) {
+                            select.appendChild(el('option', { value: status, text: statusInfo[status].label + ' (' + state.preview.Counts[status] + ')' }));
+                        }
+                    });
+                    select.value = Array.prototype.some.call(select.options, function (o) { return o.value === current; }) ? current : 'all';
+                }
+
+                function rowIds(row) {
+                    if (!row.checked || !row.choice) { return []; }
+                    var candidates = row.line.Candidates;
+                    if (row.choice === 'all') {
+                        return candidates.filter(function (c) { return !c.InCollection; }).map(function (c) { return c.Id; });
+                    }
+                    var picked = candidates.filter(function (c) { return c.Id === row.choice; })[0];
+                    return picked && !picked.InCollection ? [picked.Id] : [];
+                }
+
+                function selectedIds() {
+                    var set = {};
+                    var ids = [];
+                    state.rows.forEach(function (row) {
+                        rowIds(row).forEach(function (id) {
+                            if (!set[id]) { set[id] = true; ids.push(id); }
+                        });
+                    });
+                    return ids;
+                }
+
+                function canCheck(row) {
+                    if (row.line.Status === 'NotFound' || row.line.Status === 'AlreadyInCollection') { return false; }
+                    return !!row.choice;
+                }
+
+                function visibleRows() {
+                    var filter = $('#bcFilter').value || 'all';
+                    var rows = state.rows.filter(function (row) {
+                        var s = row.line.Status;
+                        if (filter === 'all') { return true; }
+                        if (filter === 'review') { return s === 'Ambiguous' || s === 'PossibleYearOffByOne' || s === 'PossibleFuzzy' || s === 'YearMismatch'; }
+                        return s === filter;
+                    });
+                    if ($('#bcSort').value === 'status') {
+                        rows = rows.slice().sort(function (a, b) {
+                            return (statusInfo[a.line.Status].order - statusInfo[b.line.Status].order) || (a.line.LineNumber - b.line.LineNumber);
+                        });
+                    }
+                    return rows;
+                }
+
+                function renderRows() {
+                    var tbody = $('#bcRows');
+                    clear(tbody);
+                    var fragment = document.createDocumentFragment();
+                    visibleRows().forEach(function (row) { fragment.appendChild(buildRow(row)); });
+                    tbody.appendChild(fragment);
+                    updateCounter();
+                }
+
+                function buildRow(row) {
+                    var line = row.line;
+                    var checkbox = el('input', { type: 'checkbox', 'aria-label': 'Add line ' + line.LineNumber });
+                    checkbox.checked = row.checked;
+                    checkbox.disabled = !canCheck(row);
+                    checkbox.addEventListener('change', function () {
+                        row.checked = checkbox.checked;
+                        updateCounter();
+                    });
+
+                    var matchCell = el('td');
+                    var candidates = line.Candidates;
+                    if (candidates.length > 1 || (candidates.length === 1 && line.Status !== 'Matched' && line.Status !== 'AlreadyInCollection')) {
+                        var select = el('select', { 'aria-label': 'Choose the library item for line ' + line.LineNumber });
+                        if (line.Status === 'Ambiguous' || !row.choice) {
+                            select.appendChild(el('option', { value: '', text: '— choose —' }));
+                        }
+                        candidates.forEach(function (c) {
+                            select.appendChild(el('option', { value: c.Id, text: itemLabel(c) }));
+                        });
+                        if (candidates.length > 1) {
+                            select.appendChild(el('option', { value: 'all', text: 'Add all ' + candidates.length }));
+                        }
+                        select.value = row.choice || '';
+                        select.addEventListener('change', function () {
+                            row.choice = select.value;
+                            row.checked = !!row.choice;
+                            checkbox.disabled = !canCheck(row);
+                            checkbox.checked = row.checked;
+                            updateCounter();
+                        });
+                        matchCell.appendChild(select);
+                    } else if (candidates.length === 1) {
+                        matchCell.appendChild(el('span', { text: itemLabel(candidates[0]) }));
+                    } else {
+                        matchCell.appendChild(el('span', { className: 'bc-note', text: '—' }));
+                    }
+                    if (line.Note) {
+                        matchCell.appendChild(el('div', { className: 'bc-note', text: line.Note }));
+                    }
+
+                    var tr = el('tr', { className: line.Status === 'AlreadyInCollection' || line.Status === 'NotFound' ? 'bc-dim' : '' }, [
+                        el('td', null, [checkbox]),
+                        el('td', { text: String(line.LineNumber) }),
+                        el('td', null, [el('span', { className: 'bc-badge bc-s-' + line.Status, text: statusInfo[line.Status].label })]),
+                        el('td', { className: 'bc-raw', text: line.Raw }),
+                        matchCell
+                    ]);
+                    return tr;
+                }
+
+                function updateCounter() {
+                    var count = selectedIds().length;
+                    var p = state.preview;
+                    var target = p.Collection.Exists ? ' (existing, ' + p.Collection.ItemCount + ' items)' : ' (new collection)';
+                    var counter = $('#bcCounter');
+                    clear(counter);
+                    counter.appendChild(el('strong', { text: count.toLocaleString() }));
+                    counter.appendChild(document.createTextNode(' selected to add to '));
+                    counter.appendChild(el('em', { text: p.Collection.Name }));
+                    counter.appendChild(document.createTextNode(target));
+                    $('#bcApply').disabled = count === 0;
+                }
+
+                function onSelectMatched() {
+                    state.rows.forEach(function (row) {
+                        if (row.line.Status === 'Matched' && row.choice) { row.checked = true; }
+                    });
+                    renderRows();
+                }
+
+                function onClearAll() {
+                    state.rows.forEach(function (row) { row.checked = false; });
+                    renderRows();
+                }
+
+                // ---------- Apply and report ----------
+
+                function onApply() {
+                    if (!state.preview) { return; }
+                    var ids = selectedIds();
+                    if (!ids.length) { alertMessage('Nothing is selected.'); return; }
+                    var name = state.preview.Collection.Name;
+                    var verb = state.preview.Collection.Exists ? 'Add ' + ids.length + ' item(s) to "' + name + '"?' : 'Create "' + name + '" with ' + ids.length + ' item(s)?';
+                    if (!window.confirm(verb)) { return; }
+
+                    rememberOptions();
+                    $('#bcApply').disabled = true;
+                    Dashboard.showLoadingMsg();
+                    post('BatchCollections/Apply', {
+                        CollectionName: name,
+                        LockMetadata: $('#bcLock').checked,
+                        ItemIds: ids
+                    }).then(function (response) {
+                        Dashboard.hideLoadingMsg();
+                        showReport(response);
+                        loadCollections();
+                    }, function (err) {
+                        Dashboard.hideLoadingMsg();
+                        $('#bcApply').disabled = false;
+                        readError(err).then(alertMessage);
+                    });
+                }
+
+                function showReport(response) {
+                    var failed = {};
+                    (response.Failed || []).forEach(function (f) { failed[f.Id] = f.Reason; });
+                    var report = [];
+                    var counts = { Added: 0, AlreadyInCollection: 0, NotFound: 0, Skipped: 0, Failed: 0 };
+
+                    state.rows.forEach(function (row) {
+                        var line = row.line;
+                        var ids = rowIds(row);
+                        var outcome;
+                        var items = [];
+                        if (line.Status === 'NotFound') {
+                            outcome = 'Not found';
+                            counts.NotFound++;
+                        } else if (line.Status === 'AlreadyInCollection') {
+                            outcome = 'Already in collection';
+                            counts.AlreadyInCollection++;
+                            items = line.Candidates;
+                        } else if (row.checked && row.choice && !ids.length) {
+                            outcome = 'Already in collection';
+                            counts.AlreadyInCollection++;
+                            items = line.Candidates.filter(function (c) { return row.choice === 'all' || c.Id === row.choice; });
+                        } else if (ids.length) {
+                            var bad = ids.filter(function (id) { return failed[id]; });
+                            items = line.Candidates.filter(function (c) { return ids.indexOf(c.Id) >= 0; });
+                            if (bad.length === ids.length) {
+                                outcome = 'Failed: ' + failed[bad[0]];
+                                counts.Failed++;
+                            } else {
+                                outcome = line.DuplicateOfLine ? 'Added (same item as line ' + line.DuplicateOfLine + ')' : 'Added';
+                                counts.Added++;
+                            }
+                        } else {
+                            outcome = 'Skipped (' + statusInfo[line.Status].label.toLowerCase() + ')';
+                            counts.Skipped++;
+                            items = line.Candidates;
+                        }
+                        report.push({ line: line, outcome: outcome, items: items });
+                    });
+
+                    state.lastReport = { response: response, rows: report };
+                    $('#bcResults').classList.add('bc-hidden');
+                    $('#bcReport').classList.remove('bc-hidden');
+
+                    var summary = $('#bcReportSummary');
+                    clear(summary);
+                    summary.appendChild(el('p', { text: (response.Created ? 'Created "' : 'Updated "') + response.CollectionName + '": ' + response.Added + ' item(s) added, ' + response.AlreadyPresent + ' already present.' }));
+                    if (response.Warning) { summary.appendChild(el('div', { className: 'bc-warning', text: response.Warning })); }
+                    if (response.Failed && response.Failed.length) {
+                        summary.appendChild(el('div', { className: 'bc-warning', text: response.Failed.length + ' item(s) were rejected by the server because they are no longer movies or series in the library.' }));
+                    }
+
+                    var chips = $('#bcReportChips');
+                    clear(chips);
+                    [['Added', 'Matched'], ['AlreadyInCollection', 'AlreadyInCollection'], ['NotFound', 'NotFound'], ['Skipped', 'Ambiguous'], ['Failed', 'YearMismatch']].forEach(function (pair) {
+                        var labels = { Added: 'Added', AlreadyInCollection: 'Already in collection', NotFound: 'Not found', Skipped: 'Skipped', Failed: 'Failed' };
+                        if (counts[pair[0]] || pair[0] !== 'Failed') {
+                            chips.appendChild(el('span', { className: 'bc-chip bc-s-' + pair[1], text: labels[pair[0]] + ': ' + counts[pair[0]] }));
+                        }
+                    });
+
+                    var tbody = $('#bcReportRows');
+                    clear(tbody);
+                    var fragment = document.createDocumentFragment();
+                    report.forEach(function (r) {
+                        fragment.appendChild(el('tr', null, [
+                            el('td', { text: String(r.line.LineNumber) }),
+                            el('td', { className: 'bc-raw', text: r.line.Raw }),
+                            el('td', { text: r.outcome }),
+                            el('td', { text: r.items.map(shortLabel).join(', ') })
+                        ]));
+                    });
+                    tbody.appendChild(fragment);
+                    $('#bcReport').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+
+                function copyText(text) {
+                    if (navigator.clipboard && window.isSecureContext) {
+                        return navigator.clipboard.writeText(text);
+                    }
+                    return new Promise(function (resolve, reject) {
+                        var area = el('textarea', { 'aria-hidden': 'true' });
+                        area.value = text;
+                        area.style.position = 'fixed';
+                        area.style.opacity = '0';
+                        document.body.appendChild(area);
+                        area.select();
+                        var ok = false;
+                        try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+                        document.body.removeChild(area);
+                        if (ok) { resolve(); } else { reject(new Error('copy failed')); }
+                    });
+                }
+
+                function copyWithFeedback(text, what) {
+                    copyText(text).then(function () {
+                        Dashboard.alert({ title: 'Copied', message: what + ' copied to the clipboard.' });
+                    }, function () {
+                        alertMessage('Your browser blocked clipboard access. Select the text in the report table and copy it manually.');
+                    });
+                }
+
+                function onCopyNotFound() {
+                    if (!state.lastReport) { return; }
+                    var lines = state.lastReport.rows.filter(function (r) { return r.line.Status === 'NotFound'; }).map(function (r) { return r.line.Raw.trim(); });
+                    if (!lines.length) { alertMessage('Every title was found.'); return; }
+                    copyWithFeedback(lines.join('\n'), lines.length + ' "Not found" line(s)');
+                }
+
+                function onCopyReport() {
+                    if (!state.lastReport) { return; }
+                    var r = state.lastReport.response;
+                    var out = ['Batch Collections report: ' + r.CollectionName, (r.Created ? 'Created' : 'Updated') + ': ' + r.Added + ' added, ' + r.AlreadyPresent + ' already present', ''];
+                    state.lastReport.rows.forEach(function (row) {
+                        out.push(row.line.LineNumber + '\t' + row.line.Raw.trim() + '\t' + row.outcome + (row.items.length ? '\t' + row.items.map(shortLabel).join(', ') : ''));
+                    });
+                    copyWithFeedback(out.join('\n'), 'The report');
+                }
+
+                // ---------- Wiring ----------
+
+                $('#bcForm').addEventListener('submit', onPreview);
+                $('#bcList').addEventListener('input', updateLineCount);
+                $('#bcCollectionName').addEventListener('input', updateCollectionHint);
+                $('#bcFilter').addEventListener('change', renderRows);
+                $('#bcSort').addEventListener('change', renderRows);
+                $('#bcSelectMatched').addEventListener('click', onSelectMatched);
+                $('#bcClearAll').addEventListener('click', onClearAll);
+                $('#bcApply').addEventListener('click', onApply);
+                $('#bcCopyNotFound').addEventListener('click', onCopyNotFound);
+                $('#bcCopyReport').addEventListener('click', onCopyReport);
+                $('#bcPresetLoad').addEventListener('click', onPresetLoad);
+                $('#bcPresetSave').addEventListener('click', onPresetSave);
+                $('#bcPresetDelete').addEventListener('click', onPresetDelete);
+
+                page.addEventListener('pageshow', function () {
+                    Dashboard.showLoadingMsg();
+                    updateLineCount();
+                    Promise.all([loadConfig(), loadCollections()]).then(function () {
+                        Dashboard.hideLoadingMsg();
+                    }, function () {
+                        Dashboard.hideLoadingMsg();
+                    });
+                });
+            })();
+        </script>
+    </div>
+</body>
+</html>

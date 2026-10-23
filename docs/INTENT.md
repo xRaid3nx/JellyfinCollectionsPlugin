@@ -1,0 +1,33 @@
+# Intent
+
+**Batch Collections** is a server-side Jellyfin plugin (`Jellyfin.Plugin.Collections`) for Jellyfin 12.2 / .NET 10.
+
+## Goal
+
+On a dashboard page, paste a list of titles (one per line, optional year), type a collection name, and pick Movies / Shows / Both. **Preview** matches every line against the library and changes nothing. **Apply** adds exactly the confirmed matches to a collection with that name. If the collection doesn't exist it's created. Titles that aren't in the library are skipped and reported.
+
+Why: hundreds of Disney movies shouldn't have to be added to collections one at a time.
+
+Secondary goal: publishable later (clean, documented, GPL-3.0, tested, installable from a plugin repository manifest). Until then GitHub is a private backup only.
+
+## Behaviour (summary of build prompt §4)
+
+- Inputs: list (max 5,000 lines / 1 MB), collection name (with existing-name suggestions), media type (Movies / Shows / Both; shows are Series only), year tolerance (exact / ±1), fuzzy on/off, lock metadata (new collections only), presets saved in plugin config, last-used options remembered.
+- Parser: skips blank lines and `#` / `//` comments. Strips bullets, numbering, quotes, and trailing `,` / `;`. Years are read from `(1994)`, `[1994]`, `- 1994`, `, 1994`, `| 1994`, or a TAB before the year. A bare trailing number is treated as part of the title first, then retried as a year. Duplicate lines are collapsed.
+- Normalisation: strict key (diacritics, case, punctuation, articles, trailing year tag) and loose key (strict, plus studio prefixes and number words / roman numerals up to 10).
+- Statuses: Matched, AlreadyInCollection, Ambiguous, PossibleYearOffByOne, PossibleFuzzy (≥ 0.90), YearMismatch, NotFound. Fuzzy and off-by-one matches are never auto-selected.
+- Collections: case-insensitive exact name lookup. If several have the same name, use the largest and warn. Create or add in one call, filter out existing members, never remove anything. Items are looked up server-wide.
+- Report: counts plus a table, with Copy buttons for "Not found" and for the full report.
+- Admin-only REST API under `/BatchCollections`. Uses only official `ICollectionManager` / `ILibraryManager` APIs, never direct DB access, never legacy `/emby` URLs.
+
+## Edge cases that must be handled and tested (§8)
+
+- Same title in different years (Lion King, Aladdin, Beauty and the Beast, Cinderella, Dumbo, Jungle Book, Mulan, Lilo & Stitch), with and without a year in the list.
+- Name variants: `Lion King, The`, `Frozen II` / `Frozen 2`, `WALL·E` / `WALL-E`, `Wreck-It Ralph`, `Tron: Legacy`, `Disney's A Christmas Carol`, colon variants, `Spider-Man: Into the Spider-Verse`. Known limit: `101 Dalmatians` vs `One Hundred and One Dalmatians`.
+- Titles that are numbers: `2012`, `1917`, `Blade Runner 2049`, `300`.
+- A movie and a series with the same name. Items with no year.
+- Diacritics, CRLF / LF, a UTF-8 BOM, tabs, trailing spaces, pasted bullets.
+- Idempotent re-runs, collections that are partly filled, two collections with the same name.
+- A 5,000-line list, an empty list, an empty or whitespace-only name, an empty library, and a media type with zero items.
+
+Do **not** add features beyond the build prompt.

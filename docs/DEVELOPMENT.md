@@ -1,0 +1,56 @@
+# Development
+
+## Requirements
+
+- .NET 10 SDK
+- A Jellyfin 12.2 server for manual testing (the smoke test uses the binaries in `D:\Apps\Jellyfin`)
+- PowerShell 5.1+ for the scripts; GitHub CLI (`gh`) for releases
+
+## Layout
+
+| Path | Purpose |
+|---|---|
+| `src/Jellyfin.Plugin.Collections/` | The plugin. `Core/` is pure matching logic (no Jellyfin types), `Services/` talks to Jellyfin, `Api/` is the REST controller, `Configuration/` has the dashboard page and settings. |
+| `src/Jellyfin.Plugin.Collections.Tests/` | xUnit tests |
+| `scripts/deploy-dev.ps1` | Build and install into the local Jellyfin (run elevated if Jellyfin runs elevated) |
+| `scripts/smoke-test.ps1` | End-to-end test against a throwaway Jellyfin on port 8196 |
+| `scripts/package.ps1` | Build the release zip and print its MD5 |
+| `scripts/update-manifest.ps1` | Add a version entry to `manifest.json` |
+| `scripts/publish-release.ps1` | Package, create the GitHub release, and update `manifest.json` locally |
+| `build.yaml`, `manifest.json` | Packaging metadata and the plugin repository manifest |
+| `.github/workflows/` | CI (build and test) and a manual release fallback |
+| `docs/` | `INTENT.md`, `DECISIONS.md`, images, and screenshots |
+| `github/` | Local GitHub push/pull scripts |
+
+## Build and test
+
+```powershell
+dotnet build -c Release
+dotnet test
+.\scripts\smoke-test.ps1          # -Keep leaves the sandbox at http://localhost:8196 (admin / smoke-test)
+.\scripts\deploy-dev.ps1          # install into the local Jellyfin and restart it
+```
+
+Build for a different Jellyfin version with `-p:JellyfinVersion=x.y.z`. Analyzers run with warnings as errors. Keep `Core/` free of Jellyfin types, and add tests for any matching change.
+
+## REST API (admin only)
+
+- `GET /BatchCollections/Collections`
+- `POST /BatchCollections/Preview`: `{ List, CollectionName, MediaTypes, YearTolerance, Fuzzy }`
+- `POST /BatchCollections/Apply`: `{ CollectionName, ItemIds, LockMetadata }`
+
+## Releasing
+
+Releases are cut from this PC, so the local `manifest.json` stays the source of truth.
+
+1. Bump the version in `Directory.Build.props` and `build.yaml`, then add a `CHANGELOG.md` entry.
+2. Commit.
+3. Run:
+
+   ```powershell
+   .\scripts\publish-release.ps1 -Version 1.0.1.0
+   ```
+
+   The script tests and packages the plugin, creates the GitHub release `v1.0.1.0` with the zip, adds the version to `manifest.json`, then commits and pushes.
+
+Jellyfin servers that added the repository see the update in **Dashboard → Plugins → Catalog**.

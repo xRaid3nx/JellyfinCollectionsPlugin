@@ -1,0 +1,12 @@
+[
+  {
+    "guid": "d7904f73-f7e5-4b0a-ae99-a33d1afd11b1",
+    "name": "Batch Collections",
+    "overview": "Add many movies and shows to a collection at once by pasting a list of titles.",
+    "description": "Paste a list of titles (one per line, optional year), type a collection name and click Preview. Batch Collections matches each line against your library and shows what it found. Apply adds the confirmed items to the collection, creating it if needed. Titles that aren't in your library are reported.",
+    "owner": "xRaid3nx",
+    "category": "General",
+    "imageUrl": "https://raw.githubusercontent.com/xRaid3nx/JellyfinCollectionsPlugin/main/docs/images/thumb.png",
+    "versions": []
+  }
+]

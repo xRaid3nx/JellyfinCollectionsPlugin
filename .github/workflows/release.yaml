@@ -1,0 +1,74 @@
+name: Release
+
+# Manual fallback only. Releases are normally cut locally with scripts/publish-release.ps1,
+# which also updates manifest.json locally (local is the source of truth).
+# This workflow rebuilds the zips for an existing tag and attaches them to its GitHub Release.
+# It does not touch manifest.json.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to (re)build, e.g. v1.0.0.0'
+        required: true
+
+env:
+  # Keep in sync with ci.yaml.
+  JELLYFIN_VERSIONS: '["12.2.0"]'
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      versions: ${{ steps.set.outputs.versions }}
+      tag: ${{ steps.set.outputs.tag }}
+      version: ${{ steps.set.outputs.version }}
+    steps:
+      - id: set
+        shell: bash
+        run: |
+          TAG="${{ github.event.inputs.tag }}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "versions=$JELLYFIN_VERSIONS" >> "$GITHUB_OUTPUT"
+
+  package:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        jellyfin: ${{ fromJSON(needs.prepare.outputs.versions) }}
+    name: Package (Jellyfin ${{ matrix.jellyfin }})
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.tag }}
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Test
+        run: dotnet test Jellyfin.Plugin.Collections.slnx -c Release -p:JellyfinVersion=${{ matrix.jellyfin }}
+      - name: Package
+        shell: pwsh
+        run: ./scripts/package.ps1 -Version '${{ needs.prepare.outputs.version }}' -JellyfinVersion '${{ matrix.jellyfin }}'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zip-${{ matrix.jellyfin }}
+          path: artifacts/*.zip
+
+  release:
+    needs: [prepare, package]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Attach to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          name: Batch Collections ${{ needs.prepare.outputs.version }}
+          files: dist/*.zip
