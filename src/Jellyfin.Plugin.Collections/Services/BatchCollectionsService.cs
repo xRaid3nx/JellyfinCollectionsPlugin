@@ -28,7 +28,10 @@ public sealed class BatchCollectionsService
     private static readonly SemaphoreSlim _applyLock = new(1, 1);
 
     private readonly ILibraryCatalog _catalog;
+    private static readonly TimeSpan _posterTimeout = TimeSpan.FromSeconds(60);
+
     private readonly ICollectionService _collections;
+    private readonly ICollectionArtwork _artwork;
     private readonly ILogger<BatchCollectionsService> _logger;
 
     /// <summary>
@@ -36,11 +39,13 @@ public sealed class BatchCollectionsService
     /// </summary>
     /// <param name="catalog">The library catalog.</param>
     /// <param name="collections">The collection service.</param>
+    /// <param name="artwork">The collection artwork service.</param>
     /// <param name="logger">The logger.</param>
-    public BatchCollectionsService(ILibraryCatalog catalog, ICollectionService collections, ILogger<BatchCollectionsService> logger)
+    public BatchCollectionsService(ILibraryCatalog catalog, ICollectionService collections, ICollectionArtwork artwork, ILogger<BatchCollectionsService> logger)
     {
         _catalog = catalog;
         _collections = collections;
+        _artwork = artwork;
         _logger = logger;
     }
 
@@ -152,6 +157,11 @@ public sealed class BatchCollectionsService
             throw new BatchRequestException(string.Create(CultureInfo.InvariantCulture, $"Too many items ({request.ItemIds.Count:N0}). The limit is {MaxApplyIds:N0}."));
         }
 
+        if (!Enum.IsDefined(request.Poster))
+        {
+            throw new BatchRequestException("Unknown poster option.");
+        }
+
         var requested = request.ItemIds.Where(id => !id.Equals(Guid.Empty)).Distinct().ToList();
         var valid = _catalog.GetByIds(requested, cancellationToken).Select(e => e.Id).ToHashSet();
         var failed = requested
@@ -191,12 +201,15 @@ public sealed class BatchCollectionsService
                 throw new BatchRequestException("None of the selected items are movies or series in the library, so no collection was created.");
             }
 
-            var id = await _collections.CreateAsync(name, validInOrder, request.LockMetadata, cancellationToken).ConfigureAwait(false);
+            // Metadata is locked after the poster is added, otherwise the lock would stop Jellyfin's refresh.
+            var lockLater = request.LockMetadata && request.Poster != PosterMode.Off;
+            var id = await _collections.CreateAsync(name, validInOrder, request.LockMetadata && !lockLater, cancellationToken).ConfigureAwait(false);
             _logger.LogInformation(
                 "Paste Collections: created {Collection} with {Added} items, rejected {Failed}",
                 name,
                 validInOrder.Count,
                 failed.Count);
+            var poster = await AddPosterAsync(id, name, validInOrder, request.Poster, lockLater, cancellationToken).ConfigureAwait(false);
             return new ApplyResponse
             {
                 CollectionId = id,
@@ -204,13 +217,57 @@ public sealed class BatchCollectionsService
                 Created = true,
                 Added = validInOrder.Count,
                 AlreadyPresent = 0,
-                Failed = failed
+                Failed = failed,
+                Poster = poster.Outcome,
+                PosterMessage = poster.Message.Length == 0 ? null : poster.Message
             };
         }
         finally
         {
             _applyLock.Release();
         }
+    }
+
+    private async Task<PosterResult> AddPosterAsync(Guid collectionId, string name, IReadOnlyList<Guid> memberIds, PosterMode mode, bool lockAfter, CancellationToken cancellationToken)
+    {
+        if (mode == PosterMode.Off)
+        {
+            return new PosterResult(PosterOutcome.NotAttempted, string.Empty);
+        }
+
+        PosterResult result;
+        using (var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+        {
+            timeout.CancelAfter(_posterTimeout);
+            try
+            {
+                result = await _artwork.AddPosterAsync(collectionId, name, memberIds, mode, timeout.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                result = new PosterResult(PosterOutcome.None, "Looking for a poster took too long, so it was skipped.");
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException and not OutOfMemoryException)
+            {
+                _logger.LogWarning(ex, "Paste Collections: adding a poster to {Collection} failed", name);
+                result = new PosterResult(PosterOutcome.None, "Could not add a poster. Check the server log.");
+            }
+        }
+
+        if (lockAfter)
+        {
+            try
+            {
+                await _artwork.LockAsync(collectionId, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException and not OutOfMemoryException)
+            {
+                _logger.LogWarning(ex, "Paste Collections: locking {Collection} failed", name);
+                result = result with { Message = (result.Message + " The metadata could not be locked.").Trim() };
+            }
+        }
+
+        return result;
     }
 
     private static string ValidateName(string? name)

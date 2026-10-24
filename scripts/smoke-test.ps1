@@ -82,6 +82,18 @@ foreach ($m in 'The Lion King (1994)', 'The Lion King (2019)', 'Aladdin (1992)',
 }
 NewFakeMedia (Join-Path $shows 'DuckTales (2017)\Season 1\DuckTales S01E01.mkv')
 
+# Local posters for the collage check (the libraries fetch nothing from the internet).
+Add-Type -AssemblyName System.Drawing
+$posterColors = @{ 'Moana (2016)' = 'SteelBlue'; 'Coco (2017)' = 'DarkOrange'; 'Up (2009)' = 'SeaGreen'; 'WALL-E (2008)' = 'Firebrick' }
+foreach ($m in $posterColors.Keys) {
+  $bitmap = New-Object System.Drawing.Bitmap 400, 600
+  $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+  $graphics.Clear([System.Drawing.Color]::FromName($posterColors[$m]))
+  $graphics.Dispose()
+  $bitmap.Save((Join-Path $movies "$m\poster.jpg"), [System.Drawing.Imaging.ImageFormat]::Jpeg)
+  $bitmap.Dispose()
+}
+
 Step 'Building and installing the plugin into the sandbox'
 & dotnet build (Join-Path $repoRoot 'src\Jellyfin.Plugin.Collections\Jellyfin.Plugin.Collections.csproj') -c Release "-p:JellyfinVersion=$JellyfinVersion" --nologo -v quiet
 if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
@@ -130,6 +142,14 @@ try {
     $count = (Api GET 'Items?Recursive=true&IncludeItemTypes=Movie,Series&Limit=0' $null $token).TotalRecordCount
   } while ($count -lt 10 -and (Get-Date) -lt $deadline)
   Check ($count -ge 10) "library scanned ($count of 10 movies/series)"
+  # The first collection on a server makes Jellyfin create its Collections folder and rescan the library, and that scan
+  # races with saving the collection. A warm-up collection gets this out of the way, like on a server that already has one.
+  Api POST 'Collections?name=Smoke%20Warm-up' $null $token | Out-Null
+  $deadline = (Get-Date).AddMinutes(2)
+  do {
+    Start-Sleep -Seconds 2
+    $scan = (Api GET 'ScheduledTasks' $null $token) | Where-Object { $_.Key -eq 'RefreshLibrary' }
+  } while ($scan.State -ne 'Idle' -and (Get-Date) -lt $deadline)
 
   Step 'Plugin registration'
   $plugin = (Api GET 'Plugins' $null $token) | Where-Object { ($_.Id -replace '-', '') -eq ($pluginGuid -replace '-', '') }
@@ -187,6 +207,27 @@ try {
   $already = @($rerun.Lines | Where-Object { $_.Status -eq 'AlreadyInCollection' }).Count
   Check ($already -eq 6) "second preview marks the 6 added rows as AlreadyInCollection (got $already)"
   Check (-not ($rerun.Lines | Where-Object { $_.Selected })) 'second preview pre-selects nothing'
+
+  Step 'Poster for a new collection'
+  $pixar = Api POST 'PasteCollections/Preview' @{ List = "Moana`nCoco`nUp`nWALL-E"; CollectionName = 'Smoke Poster Picks'; MediaTypes = 'Movies' } $token
+  $pixarIds = @($pixar.Lines | Where-Object { $_.Selected } | ForEach-Object { $_.SelectedId })
+  $posterApply = Api POST 'PasteCollections/Apply' @{ CollectionName = 'Smoke Poster Picks'; LockMetadata = $true; Poster = 'TmdbThenCollage'; ItemIds = $pixarIds } $token
+  Write-Host "    Poster result: $($posterApply.Poster) - $($posterApply.PosterMessage)"
+  Check ($posterApply.Created -and $posterApply.Poster -eq 'Collage') "new collection got a collage (got '$($posterApply.Poster)')"
+  $item = Api GET ("Users/$($auth.User.Id)/Items/$($posterApply.CollectionId)") $null $token
+  Check ($null -ne $item.ImageTags.Primary) 'collection has a primary image'
+  Check ($item.LockData -eq $true) 'collection metadata is locked after the poster was added'
+  $posterFile = Join-Path $sandbox 'collection-poster.jpg'
+  Invoke-WebRequest -UseBasicParsing -Uri "$base/Items/$($posterApply.CollectionId)/Images/Primary" -OutFile $posterFile
+  $image = [System.Drawing.Image]::FromFile($posterFile)
+  $size = "$($image.Width)x$($image.Height)"
+  $topLeft = ([System.Drawing.Bitmap]$image).GetPixel(20, 20)
+  $bottomRight = ([System.Drawing.Bitmap]$image).GetPixel($image.Width - 20, $image.Height - 20)
+  $image.Dispose()
+  Check ($size -eq '600x900') "collage is poster-shaped 600x900 (got $size)"
+  Check ($topLeft.ToArgb() -ne $bottomRight.ToArgb()) 'collage shows more than one poster'
+  $offApply = Api POST 'PasteCollections/Apply' @{ CollectionName = 'Smoke No Poster'; Poster = 'Off'; ItemIds = @($pixarIds[0]) } $token
+  Check ($offApply.Created -and $offApply.Poster -eq 'NotAttempted') "poster 'Off' leaves artwork alone (got '$($offApply.Poster)')"
 
   $log = Get-ChildItem (Join-Path $sandbox 'log') -Filter '*.log' | Sort-Object LastWriteTime | Select-Object -Last 1
   $pluginLines = Select-String -Path $log.FullName -Pattern 'Paste Collections' | Select-Object -First 8

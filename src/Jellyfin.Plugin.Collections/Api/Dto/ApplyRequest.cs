@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Jellyfin.Plugin.Collections.Core;
 
 namespace Jellyfin.Plugin.Collections.Api.Dto;
 
@@ -17,6 +18,11 @@ public sealed class ApplyRequest
     /// Gets or sets a value indicating whether to lock metadata on a newly created collection.
     /// </summary>
     public bool LockMetadata { get; set; }
+
+    /// <summary>
+    /// Gets or sets how a newly created collection gets its poster.
+    /// </summary>
+    public PosterMode Poster { get; set; } = PosterMode.Off;
 
     /// <summary>
     /// Gets or sets the confirmed item ids.

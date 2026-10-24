@@ -31,6 +31,11 @@ public class PluginConfiguration : BasePluginConfiguration
     public bool LastLockMetadata { get; set; }
 
     /// <summary>
+    /// Gets or sets the last-used poster option for new collections.
+    /// </summary>
+    public PosterMode LastPosterMode { get; set; } = PosterMode.TmdbThenCollage;
+
+    /// <summary>
     /// Gets or sets the last collection name.
     /// </summary>
     public string LastCollectionName { get; set; } = string.Empty;

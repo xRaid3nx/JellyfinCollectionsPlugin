@@ -112,6 +112,18 @@
                                 </div>
                             </div>
 
+                            <div class="bc-field">
+                                <label class="bc-label" for="bcPoster">New collection poster</label>
+                                <div class="selectContainer">
+                                    <select is="emby-select" id="bcPoster" class="emby-select-withcolor emby-select">
+                                        <option value="TmdbThenCollage">Find on TMDB, otherwise make a collage</option>
+                                        <option value="TmdbOnly">Find on TMDB only</option>
+                                        <option value="Off">Off</option>
+                                    </select>
+                                </div>
+                                <div class="fieldDescription">Only used when a new collection is created. The collage uses the first four posters from your list.</div>
+                            </div>
+
                             <div class="bc-checks">
                                 <div>
                                     <div class="checkboxContainer">
@@ -390,6 +402,7 @@
                         $('#bcYearTolerance').value = String(config.LastYearTolerance || 0);
                         $('#bcFuzzy').checked = config.LastFuzzy !== false;
                         $('#bcLock').checked = !!config.LastLockMetadata;
+                        $('#bcPoster').value = config.LastPosterMode || 'TmdbThenCollage';
                         if (!$('#bcCollectionName').value && config.LastCollectionName) {
                             $('#bcCollectionName').value = config.LastCollectionName;
                         }
@@ -411,6 +424,7 @@
                     state.config.LastYearTolerance = parseInt($('#bcYearTolerance').value, 10) || 0;
                     state.config.LastFuzzy = $('#bcFuzzy').checked;
                     state.config.LastLockMetadata = $('#bcLock').checked;
+                    state.config.LastPosterMode = $('#bcPoster').value;
                     state.config.LastCollectionName = $('#bcCollectionName').value.trim();
                     saveConfig().catch(function () { /* remembering options is best effort */ });
                 }
@@ -731,6 +745,7 @@
                     post('PasteCollections/Apply', {
                         CollectionName: name,
                         LockMetadata: $('#bcLock').checked,
+                        Poster: $('#bcPoster').value,
                         ItemIds: ids
                     }).then(function (response) {
                         Dashboard.hideLoadingMsg();
@@ -791,6 +806,9 @@
                     clear(summary);
                     summary.appendChild(el('p', { text: (response.Created ? 'Created "' : 'Updated "') + response.CollectionName + '": ' + response.Added + ' item(s) added, ' + response.AlreadyPresent + ' already present.' }));
                     if (response.Warning) { summary.appendChild(el('div', { className: 'bc-warning', text: response.Warning })); }
+                    if (response.Created && response.PosterMessage) {
+                        summary.appendChild(el('p', { className: response.Poster === 'None' ? 'bc-warning' : 'fieldDescription', text: 'Poster: ' + response.PosterMessage }));
+                    }
                     if (response.Failed && response.Failed.length) {
                         summary.appendChild(el('div', { className: 'bc-warning', text: response.Failed.length + ' item(s) were rejected by the server because they are no longer movies or series in the library.' }));
                     }

@@ -37,7 +37,7 @@ Build for a different Jellyfin version with `-p:JellyfinVersion=x.y.z`. Analyzer
 
 - `GET /PasteCollections/Collections`
 - `POST /PasteCollections/Preview`: `{ List, CollectionName, MediaTypes, YearTolerance, Fuzzy }`
-- `POST /PasteCollections/Apply`: `{ CollectionName, ItemIds, LockMetadata }`
+- `POST /PasteCollections/Apply`: `{ CollectionName, ItemIds, LockMetadata, Poster }` (`Poster`: `TmdbThenCollage`, `TmdbOnly` or `Off`; the response adds `Poster` and `PosterMessage`)
 - `POST /PasteCollections/Seerr/Test`: `{ Url, ApiKey }` (blank values use the saved settings)
 - `POST /PasteCollections/Seerr/Request`: `{ Items: [{ LineNumber, Title, Year, MediaTypes, TmdbId?, MediaType? }] }`, at most 50 per call
 

@@ -30,6 +30,29 @@ internal sealed class FakeCatalog : ILibraryCatalog
     }
 }
 
+internal sealed class FakeArtwork : ICollectionArtwork
+{
+    public List<(Guid CollectionId, string Name, List<Guid> MemberIds, PosterMode Mode)> Calls { get; } = [];
+
+    public List<Guid> Locked { get; } = [];
+
+    public PosterResult Result { get; set; } = new(PosterOutcome.Collage, "Collage made from 4 posters.");
+
+    public bool Throw { get; set; }
+
+    public Task<PosterResult> AddPosterAsync(Guid collectionId, string name, IReadOnlyList<Guid> memberIds, PosterMode mode, CancellationToken cancellationToken)
+    {
+        Calls.Add((collectionId, name, [.. memberIds], mode));
+        return Throw ? throw new InvalidOperationException("TMDB is down") : Task.FromResult(Result);
+    }
+
+    public Task LockAsync(Guid collectionId, CancellationToken cancellationToken)
+    {
+        Locked.Add(collectionId);
+        return Task.CompletedTask;
+    }
+}
+
 internal sealed class FakeCollections : ICollectionService
 {
     public List<(Guid Id, string Name, HashSet<Guid> Members, bool Locked)> Store { get; } = [];

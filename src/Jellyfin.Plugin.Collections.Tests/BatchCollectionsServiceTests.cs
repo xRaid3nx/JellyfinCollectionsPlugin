@@ -12,11 +12,98 @@ namespace Jellyfin.Plugin.Collections.Tests;
 public class BatchCollectionsServiceTests
 {
     private readonly FakeCollections _collections = new();
+    private readonly FakeArtwork _artwork = new();
     private readonly BatchCollectionsService _service;
 
     public BatchCollectionsServiceTests()
     {
-        _service = new BatchCollectionsService(new FakeCatalog(DisneyCatalog.All), _collections, NullLogger<BatchCollectionsService>.Instance);
+        _service = new BatchCollectionsService(new FakeCatalog(DisneyCatalog.All), _collections, _artwork, NullLogger<BatchCollectionsService>.Instance);
+    }
+
+    private Task<ApplyResponse> ApplyWithPoster(string name, PosterMode poster, bool locked, params Guid[] ids)
+    {
+        return _service.ApplyAsync(new ApplyRequest { CollectionName = name, ItemIds = ids, LockMetadata = locked, Poster = poster }, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task Apply_NewCollection_AddsPoster_WithMembersInListOrder()
+    {
+        var ids = new[] { Id("Moana", 2016), Id("Coco", 2017), Id("Frozen", 2013) };
+
+        var response = await ApplyWithPoster("Disney Classics", PosterMode.TmdbThenCollage, false, ids);
+
+        var call = Assert.Single(_artwork.Calls);
+        Assert.Equal(response.CollectionId, call.CollectionId);
+        Assert.Equal("Disney Classics", call.Name);
+        Assert.Equal(ids, call.MemberIds);
+        Assert.Equal(PosterMode.TmdbThenCollage, call.Mode);
+        Assert.Equal(PosterOutcome.Collage, response.Poster);
+        Assert.Equal("Collage made from 4 posters.", response.PosterMessage);
+        Assert.Empty(_artwork.Locked);
+    }
+
+    [Fact]
+    public async Task Apply_LockWithPoster_LocksAfterThePoster()
+    {
+        var response = await ApplyWithPoster("Disney Classics", PosterMode.TmdbOnly, true, Id("Moana", 2016));
+
+        Assert.False(_collections.Store.Single().Locked);
+        Assert.Equal([response.CollectionId], _artwork.Locked);
+    }
+
+    [Fact]
+    public async Task Apply_PosterOff_LocksAtCreation_AndSkipsArtwork()
+    {
+        var response = await ApplyWithPoster("Disney Classics", PosterMode.Off, true, Id("Moana", 2016));
+
+        Assert.True(_collections.Store.Single().Locked);
+        Assert.Empty(_artwork.Calls);
+        Assert.Empty(_artwork.Locked);
+        Assert.Equal(PosterOutcome.NotAttempted, response.Poster);
+        Assert.Null(response.PosterMessage);
+    }
+
+    [Fact]
+    public async Task Apply_ExistingCollection_NeverTouchesArtwork()
+    {
+        _collections.Seed("Disney Classics", Id("Coco", 2017));
+
+        var response = await ApplyWithPoster("Disney Classics", PosterMode.TmdbThenCollage, true, Id("Moana", 2016));
+
+        Assert.False(response.Created);
+        Assert.Empty(_artwork.Calls);
+        Assert.Empty(_artwork.Locked);
+    }
+
+    [Fact]
+    public async Task Apply_PosterFailure_StillCreatesAndLocks()
+    {
+        _artwork.Throw = true;
+
+        var response = await ApplyWithPoster("Disney Classics", PosterMode.TmdbThenCollage, true, Id("Moana", 2016));
+
+        Assert.True(response.Created);
+        Assert.Equal(PosterOutcome.None, response.Poster);
+        Assert.Single(_artwork.Locked);
+    }
+
+    [Fact]
+    public async Task Apply_UnknownPosterMode_IsRejected()
+    {
+        await Assert.ThrowsAsync<BatchRequestException>(() => ApplyWithPoster("x", (PosterMode)42, false, Id("Moana", 2016)));
+    }
+
+    [Theory]
+    [InlineData("Toy Story", "Toy Story Collection", true)]
+    [InlineData("Toy Story Collection", "Toy Story Collection", true)]
+    [InlineData("the lord of the rings collection", "The Lord of the Rings Collection", true)]
+    [InlineData("Toy Story Collection", "Toy Story", true)]
+    [InlineData("Maddock Horror Comedy Universe", "Horror Comedy Collection", false)]
+    [InlineData("Star Wars", "Star Wars: The Clone Wars Collection", false)]
+    [InlineData("Disney Classics", "", false)]
+    public void TmdbCollectionName_MatchesOnlyTheSameName(string collection, string tmdb, bool expected)
+    {
+        Assert.Equal(expected, CollectionArtwork.IsSameCollection(collection, tmdb));
     }
 
     private static Guid Id(string name, int year) => DisneyCatalog.Get(name, year).Id;
@@ -113,7 +200,7 @@ public class BatchCollectionsServiceTests
     [Fact]
     public void Preview_EmptyLibrary_AllNotFound()
     {
-        var service = new BatchCollectionsService(new FakeCatalog([]), _collections, NullLogger<BatchCollectionsService>.Instance);
+        var service = new BatchCollectionsService(new FakeCatalog([]), _collections, _artwork, NullLogger<BatchCollectionsService>.Instance);
 
         var response = service.Preview(new PreviewRequest { List = "Moana\nCoco", CollectionName = "x" }, CancellationToken.None);
 

@@ -43,7 +43,7 @@ Titles that are **Not found** can optionally be requested in [Seerr](https://doc
 - **It never removes anything.** It only creates collections and adds to them.
 - **Unsure matches are never added automatically.** If a title could mean more than one thing (like *The Lion King* 1994 vs. 2019), you pick.
 - **Running the same list again is harmless.** Items already in the collection are skipped.
-- **It works offline.** It only looks at your own library. The one exception is the optional Seerr connection, which only talks to the Seerr server you configure.
+- **It works offline.** It only looks at your own library. The exceptions are the optional Seerr connection, which only talks to the Seerr server you configure, and the poster lookup for new collections, which uses Jellyfin's own TMDB provider.
 - **Admins only.** Regular users can't see or use it.
 
 ## Install
@@ -111,6 +111,16 @@ Each Not found line now has a **Request in Seerr** button, and **Request all "No
 
 Seerr works best when it's connected to the same Jellyfin server, so "available" in Seerr means the same thing as "in your library" here.
 
+### Posters for new collections
+
+When Apply creates a new collection, **New collection poster** decides how it gets artwork:
+
+- **Find on TMDB, otherwise make a collage** (default): if TMDB has a collection with the same name (for example *Toy Story* finds *Toy Story Collection*), its poster and background are used. Otherwise the plugin builds a 2×2 collage from the first four posters in your list, so the collection doesn't look like a single movie.
+- **Find on TMDB only:** use TMDB artwork when there's a clear match, and leave it blank otherwise.
+- **Off:** leave artwork to Jellyfin.
+
+Existing collections are never changed. The report after Apply says which poster was used.
+
 **Tip: presets.** Open **Presets** to save a list under a name. When you add more movies later, load the preset and apply it again; only the new ones get added.
 
 ### Writing your list
@@ -145,7 +155,7 @@ Check how the title is spelled in Jellyfin (open the movie and look at its name)
 The one with more items is used, and Preview shows a warning.
 
 **What does "Lock collection metadata" do?**
-It stops Jellyfin from overwriting the new collection's name and details during metadata refreshes. It only applies when a collection is created.
+It stops Jellyfin from overwriting the new collection's name and details during metadata refreshes. It only applies when a collection is created, and it's switched on after the poster has been added.
 
 **Does this work with TV shows?**
 Yes. Shows are added as whole series.

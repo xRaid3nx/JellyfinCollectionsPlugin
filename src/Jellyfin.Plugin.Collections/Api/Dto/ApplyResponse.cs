@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Jellyfin.Plugin.Collections.Core;
 
 namespace Jellyfin.Plugin.Collections.Api.Dto;
 
@@ -42,4 +43,14 @@ public sealed class ApplyResponse
     /// Gets or sets a warning, if any.
     /// </summary>
     public string? Warning { get; set; }
+
+    /// <summary>
+    /// Gets or sets which poster a newly created collection got.
+    /// </summary>
+    public PosterOutcome Poster { get; set; }
+
+    /// <summary>
+    /// Gets or sets a readable explanation of <see cref="Poster"/>.
+    /// </summary>
+    public string? PosterMessage { get; set; }
 }

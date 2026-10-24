@@ -2,8 +2,10 @@
 
 All notable changes to this project are documented here. Versions use Jellyfin's four-part format.
 
-## Unreleased
+## 1.1.1.1
 
+- New collection poster: when Apply creates a collection, it is looked up on TMDB (only an exact name match, with or without "Collection"). If there's no match, a 2×2 collage is made from the first four posters in your list. Choose "Find on TMDB only" or "Off" instead under **New collection poster**. The report says which poster was used.
+- "Lock metadata" is now applied after the poster is added, so it no longer blocks the artwork.
 - Renamed the product to **Paste Collections** (same plugin GUID). Dashboard page and API routes are now under `PasteCollections`.
 - GitHub repository renamed to [PasteCollections](https://github.com/xRaid3nx/PasteCollections) (old `JellyfinCollectionsPlugin` URL redirects).
 

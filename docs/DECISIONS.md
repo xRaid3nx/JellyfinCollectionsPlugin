@@ -44,3 +44,12 @@ Where the real Jellyfin 12.2.0 packages or this machine differed from the prompt
 - **Matching reuses the library title keys** (strict or loose) plus an exact year when the line has one. Anything else is a choice for the user, the same rule as fuzzy matches in Preview.
 - **Requests use Seerr's defaults**: no 4K, default server and profile, all seasons for shows. Status 4/5 (partly/fully available) and 2/3 (pending/processing) are reported instead of requested; HTTP 409 from Seerr counts as already requested.
 - **Bulk requests run sequentially in chunks of 10** from the page so progress is visible. If Seerr can't be reached, the rest of the chunk fails at once instead of waiting for each timeout (15 s).
+
+## Posters for new collections
+
+- **TMDB matching is strict**: the TMDB collection name must equal the typed name (title keys), with or without a trailing "Collection". Anything looser would put an unrelated franchise's poster on a custom collection. Jellyfin's own box set provider may still pick a poster during its background refresh; if a poster already exists, no collage is made.
+- **Identify uses Jellyfin's provider manager** (`GetRemoteSearchResults<BoxSet, BoxSetInfo>` then `RefreshFullItem` with the search result and `ReplaceAllImages`), the same path as the Identify dialog. Metadata isn't replaced, so the typed name stays.
+- **The collage uses Jellyfin's image encoder** (`IImageEncoder.CreateImageCollage`) at 600x900. Jellyfin 12.2 only has square and thumb collage builders; poster-shaped output falls back to the 2x2 square builder, which fits 2:3 posters into 2:3 cells. One poster is used as-is; two or three are repeated by Jellyfin to fill the grid. It's saved with `IProviderManager.SaveImage`.
+- **Lock metadata is applied after the poster** when a poster option is on, because a locked item skips the refresh that downloads TMDB artwork.
+- **Poster work never fails Apply**: errors and a 60 s timeout become a message in the report.
+- **The smoke test creates a warm-up collection first.** The first collection on a server makes Jellyfin create its Collections folder and rescan the library; on Windows that scan can hold `collection.xml` open while the new collection is saved, and its members are lost. Servers that already have a collection don't hit this.
