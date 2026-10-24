@@ -36,6 +36,16 @@ public class PluginConfiguration : BasePluginConfiguration
     public string LastCollectionName { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets or sets the Seerr base URL, as reachable from the Jellyfin server.
+    /// </summary>
+    public string SeerrUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the Seerr API key (Seerr: Settings, General).
+    /// </summary>
+    public string SeerrApiKey { get; set; } = string.Empty;
+
+    /// <summary>
     /// Gets or sets the saved list presets.
     /// </summary>
     [SuppressMessage("Usage", "CA2227:Collection properties should be read only", Justification = "Required for XML serialization.")]

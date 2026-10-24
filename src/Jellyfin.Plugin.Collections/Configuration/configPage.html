@@ -57,6 +57,13 @@
             .batchCollectionsPage .bc-warning { padding: .6em .8em; border-left: .3em solid #db9a04; background: rgba(219,154,4,.15); margin: .5em 0; }
             .batchCollectionsPage .bc-hidden { display: none !important; }
             .batchCollectionsPage .bc-table input[type=checkbox] { width: 1.2em; height: 1.2em; cursor: pointer; }
+            .batchCollectionsPage .bc-seerr { display: flex; flex-wrap: wrap; align-items: center; gap: .4em .6em; margin-top: .2em; }
+            .batchCollectionsPage .bc-seerr select { max-width: 22em; }
+            .batchCollectionsPage .bc-seerr .emby-button { margin: 0; padding: .3em .8em; font-size: .85em; }
+            .batchCollectionsPage .bc-s-Requested { background: rgba(46,160,67,.35); }
+            .batchCollectionsPage .bc-s-AlreadyRequested, .batchCollectionsPage .bc-s-AlreadyAvailable { background: rgba(128,128,128,.3); }
+            .batchCollectionsPage .bc-s-Failed { background: rgba(203,36,49,.4); }
+            .batchCollectionsPage .bc-seerr-status { margin-top: .6em; }
         </style>
         <div data-role="content">
             <div class="content-primary">
@@ -154,6 +161,29 @@
                             </div>
                         </div>
                     </details>
+
+                    <details class="bc-presets" id="bcSeerrPanel">
+                        <summary>Seerr</summary>
+                        <p class="fieldDescription">Connect Seerr to request titles that aren't in your library. Use an address the Jellyfin server can reach.</p>
+                        <div class="bc-field">
+                            <label class="bc-label" for="bcSeerrUrl">Seerr address</label>
+                            <div class="inputContainer">
+                                <input is="emby-input" id="bcSeerrUrl" type="url" autocomplete="off" placeholder="http://192.168.1.10:5055" />
+                            </div>
+                        </div>
+                        <div class="bc-field">
+                            <label class="bc-label" for="bcSeerrKey">API key</label>
+                            <div class="inputContainer">
+                                <input is="emby-input" id="bcSeerrKey" type="password" autocomplete="off" />
+                            </div>
+                            <div class="fieldDescription">In Seerr: Settings, General, API Key.</div>
+                        </div>
+                        <div class="bc-buttons">
+                            <button is="emby-button" type="button" id="bcSeerrSave" class="raised emby-button"><span>Save</span></button>
+                            <button is="emby-button" type="button" id="bcSeerrTest" class="raised emby-button"><span>Test connection</span></button>
+                        </div>
+                        <div class="fieldDescription bc-seerr-status" id="bcSeerrStatus"></div>
+                    </details>
                 </form>
 
                 <div id="bcResults" class="bc-section bc-hidden" aria-live="polite">
@@ -195,6 +225,7 @@
                     <div class="bc-counter" id="bcCounter"></div>
                     <div class="bc-buttons">
                         <button is="emby-button" type="button" id="bcApply" class="raised button-submit emby-button" disabled><span>Apply</span></button>
+                        <button is="emby-button" type="button" class="raised emby-button bc-seerr-all bc-hidden"><span>Request all "Not found" in Seerr</span></button>
                     </div>
                 </div>
 
@@ -205,6 +236,7 @@
                     <div class="bc-buttons">
                         <button is="emby-button" type="button" id="bcCopyNotFound" class="raised emby-button"><span>Copy "Not found"</span></button>
                         <button is="emby-button" type="button" id="bcCopyReport" class="raised emby-button"><span>Copy full report</span></button>
+                        <button is="emby-button" type="button" class="raised emby-button bc-seerr-all bc-hidden"><span>Request all "Not found" in Seerr</span></button>
                     </div>
                     <div class="bc-tablewrap">
                         <table class="bc-table">
@@ -243,7 +275,9 @@
                     NotFound: { label: 'Not found', order: 6 }
                 };
 
-                var state = { config: null, preview: null, rows: [], collections: [], lastReport: null };
+                var state = { config: null, preview: null, previewMediaTypes: 'Both', rows: [], collections: [], lastReport: null, seerr: {}, seerrBusy: false };
+                var seerrChunk = 10;
+                var seerrLabels = { Requested: 'Requested', AlreadyRequested: 'Already requested', AlreadyAvailable: 'Available in Seerr', NeedsChoice: 'Pick a match', NotFound: 'Not in Seerr', Failed: 'Failed' };
 
                 function el(tag, props, children) {
                     var node = document.createElement(tag);
@@ -358,7 +392,10 @@
                         if (!$('#bcCollectionName').value && config.LastCollectionName) {
                             $('#bcCollectionName').value = config.LastCollectionName;
                         }
+                        $('#bcSeerrUrl').value = config.SeerrUrl || '';
+                        $('#bcSeerrKey').value = config.SeerrApiKey || '';
                         renderPresets();
+                        updateSeerrButtons();
                     });
                 }
 
@@ -467,6 +504,7 @@
                     if (countLines(list) > maxLines) { alertMessage('The list has more than 5,000 lines. Split it into smaller lists.'); return false; }
 
                     rememberOptions();
+                    var mediaTypes = $('#bcMediaTypes').value;
                     Dashboard.showLoadingMsg();
                     post('BatchCollections/Preview', {
                         List: list,
@@ -476,6 +514,7 @@
                         Fuzzy: $('#bcFuzzy').checked
                     }).then(function (response) {
                         Dashboard.hideLoadingMsg();
+                        state.previewMediaTypes = mediaTypes;
                         showPreview(response);
                     }, function (err) {
                         Dashboard.hideLoadingMsg();
@@ -493,6 +532,8 @@
                         }
                         return { line: line, checked: !!line.Selected, choice: choice };
                     });
+                    state.seerr = {};
+                    updateSeerrButtons();
 
                     $('#bcReport').classList.add('bc-hidden');
                     $('#bcResults').classList.remove('bc-hidden');
@@ -635,8 +676,10 @@
                     if (line.Note) {
                         matchCell.appendChild(el('div', { className: 'bc-note', text: line.Note }));
                     }
+                    var seerr = line.Status === 'NotFound' ? seerrWidget(line) : null;
+                    if (seerr) { matchCell.appendChild(seerr); }
 
-                    var tr = el('tr', { className: line.Status === 'AlreadyInCollection' || line.Status === 'NotFound' ? 'bc-dim' : '' }, [
+                    var tr = el('tr', { className: line.Status === 'AlreadyInCollection' || (line.Status === 'NotFound' && !seerr) ? 'bc-dim' : '' }, [
                         el('td', null, [checkbox]),
                         el('td', { text: String(line.LineNumber) }),
                         el('td', null, [el('span', { className: 'bc-badge bc-s-' + line.Status, text: statusInfo[line.Status].label })]),
@@ -760,19 +803,24 @@
                         }
                     });
 
+                    renderReportRows();
+                    $('#bcReport').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+
+                function renderReportRows() {
                     var tbody = $('#bcReportRows');
                     clear(tbody);
                     var fragment = document.createDocumentFragment();
-                    report.forEach(function (r) {
+                    state.lastReport.rows.forEach(function (r) {
                         fragment.appendChild(el('tr', null, [
                             el('td', { text: String(r.line.LineNumber) }),
                             el('td', { className: 'bc-raw', text: r.line.Raw }),
                             el('td', { text: r.outcome }),
-                            el('td', { text: r.items.map(shortLabel).join(', ') })
+                            el('td', null, [r.items.map(shortLabel).join(', '), r.line.Status === 'NotFound' ? seerrWidget(r.line) : null])
                         ]));
                     });
                     tbody.appendChild(fragment);
-                    $('#bcReport').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    updateSeerrButtons();
                 }
 
                 function copyText(text) {
@@ -818,6 +866,178 @@
                     copyWithFeedback(out.join('\n'), 'The report');
                 }
 
+                // ---------- Seerr ----------
+
+                function seerrConfigured() {
+                    return !!(state.config && (state.config.SeerrUrl || '').trim() && (state.config.SeerrApiKey || '').trim());
+                }
+
+                function seerrPending() {
+                    return state.rows.filter(function (row) {
+                        if (row.line.Status !== 'NotFound') { return false; }
+                        var result = state.seerr[row.line.LineNumber];
+                        return !result || result.Outcome === 'Failed';
+                    }).map(function (row) { return row.line; });
+                }
+
+                function updateSeerrButtons() {
+                    var show = seerrConfigured() && state.rows.some(function (row) { return row.line.Status === 'NotFound'; });
+                    var n = show ? seerrPending().length : 0;
+                    Array.prototype.forEach.call(page.querySelectorAll('.bc-seerr-all'), function (button) {
+                        button.classList.toggle('bc-hidden', !show);
+                        button.disabled = state.seerrBusy || n === 0;
+                        button.querySelector('span').textContent = state.seerrBusy && state.seerrProgress
+                            ? state.seerrProgress
+                            : 'Request all "Not found" in Seerr' + (n ? ' (' + n + ')' : '');
+                    });
+                }
+
+                function candidateLabel(c) {
+                    var text = (c.Year ? c.Title + ' (' + c.Year + ')' : c.Title) + ' · ' + (c.MediaType === 'tv' ? 'Series' : 'Movie');
+                    if (c.Status === 2 || c.Status === 3) { text += ' · already requested'; }
+                    else if (c.Status === 4) { text += ' · partly available'; }
+                    else if (c.Status === 5) { text += ' · available'; }
+                    return text;
+                }
+
+                function seerrItem(line, candidate) {
+                    var item = { LineNumber: line.LineNumber, Title: line.Title, Year: line.Year, MediaTypes: state.previewMediaTypes };
+                    if (candidate) {
+                        item.TmdbId = candidate.TmdbId;
+                        item.MediaType = candidate.MediaType;
+                        item.Title = candidate.Title;
+                        item.Year = candidate.Year;
+                    }
+                    return item;
+                }
+
+                function smallButton(text, onClick) {
+                    var button = el('button', { type: 'button', className: 'raised emby-button' }, [el('span', { text: text })]);
+                    button.addEventListener('click', onClick);
+                    button.disabled = state.seerrBusy;
+                    return button;
+                }
+
+                function seerrWidget(line) {
+                    if (!seerrConfigured()) { return null; }
+                    var box = el('div', { className: 'bc-seerr', 'data-seerr-line': String(line.LineNumber) });
+                    fillSeerr(box, line);
+                    return box;
+                }
+
+                function fillSeerr(box, line) {
+                    clear(box);
+                    var result = state.seerr[line.LineNumber];
+                    if (result && result.pending) {
+                        box.appendChild(el('span', { className: 'bc-note', text: 'Requesting in Seerr…' }));
+                        return;
+                    }
+                    if (!result) {
+                        box.appendChild(smallButton('Request in Seerr', function () { requestSeerr([seerrItem(line)]); }));
+                        return;
+                    }
+                    box.appendChild(el('span', { className: 'bc-badge bc-s-' + result.Outcome, text: seerrLabels[result.Outcome] || result.Outcome }));
+                    if (result.Outcome === 'NeedsChoice') {
+                        var select = el('select', { 'aria-label': 'Choose the Seerr match for line ' + line.LineNumber });
+                        select.appendChild(el('option', { value: '', text: '— choose —' }));
+                        result.Candidates.forEach(function (c, i) {
+                            select.appendChild(el('option', { value: String(i), text: candidateLabel(c) }));
+                        });
+                        var pick = smallButton('Request', function () {
+                            var c = result.Candidates[parseInt(select.value, 10)];
+                            if (c) { requestSeerr([seerrItem(line, c)]); }
+                        });
+                        pick.disabled = true;
+                        select.addEventListener('change', function () { pick.disabled = state.seerrBusy || !select.value; });
+                        box.appendChild(select);
+                        box.appendChild(pick);
+                        return;
+                    }
+                    if (result.Message) { box.appendChild(el('span', { className: 'bc-note', text: result.Message })); }
+                    if (result.Outcome === 'Failed') {
+                        box.appendChild(smallButton('Try again', function () { requestSeerr([seerrItem(line)]); }));
+                    }
+                }
+
+                function refreshSeerr() {
+                    Array.prototype.forEach.call(page.querySelectorAll('[data-seerr-line]'), function (box) {
+                        var n = parseInt(box.getAttribute('data-seerr-line'), 10);
+                        var row = state.rows.filter(function (r) { return r.line.LineNumber === n; })[0];
+                        if (row) { fillSeerr(box, row.line); }
+                    });
+                    updateSeerrButtons();
+                }
+
+                function requestSeerr(items) {
+                    if (state.seerrBusy || !items.length) { return; }
+                    state.seerrBusy = true;
+                    state.seerrProgress = 'Requesting… 0 of ' + items.length;
+                    items.forEach(function (item) { state.seerr[item.LineNumber] = { pending: true }; });
+                    refreshSeerr();
+
+                    var chunks = [];
+                    for (var i = 0; i < items.length; i += seerrChunk) { chunks.push(items.slice(i, i + seerrChunk)); }
+                    var done = 0;
+                    var failure = null;
+                    chunks.reduce(function (previous, chunk) {
+                        return previous.then(function () {
+                            if (failure) {
+                                chunk.forEach(function (item) { delete state.seerr[item.LineNumber]; });
+                                return null;
+                            }
+                            return post('BatchCollections/Seerr/Request', { Items: chunk }).then(function (results) {
+                                (results || []).forEach(function (r) { state.seerr[r.LineNumber] = r; });
+                                done += chunk.length;
+                                state.seerrProgress = 'Requesting… ' + done + ' of ' + items.length;
+                                refreshSeerr();
+                            }, function (err) {
+                                chunk.forEach(function (item) { delete state.seerr[item.LineNumber]; });
+                                return readError(err).then(function (message) { failure = message; });
+                            });
+                        });
+                    }, Promise.resolve()).then(function () {
+                        state.seerrBusy = false;
+                        state.seerrProgress = null;
+                        refreshSeerr();
+                        if (failure) { alertMessage(failure); }
+                    });
+                }
+
+                function onSeerrAll() {
+                    var lines = seerrPending();
+                    if (!lines.length) { return; }
+                    if (!window.confirm('Request ' + lines.length + ' title(s) in Seerr? Titles with several possible matches will ask you to pick one.')) { return; }
+                    requestSeerr(lines.map(function (line) { return seerrItem(line); }));
+                }
+
+                function onSeerrSave() {
+                    if (!state.config) { return; }
+                    state.config.SeerrUrl = $('#bcSeerrUrl').value.trim();
+                    state.config.SeerrApiKey = $('#bcSeerrKey').value.trim();
+                    Dashboard.showLoadingMsg();
+                    saveConfig().then(function () {
+                        Dashboard.hideLoadingMsg();
+                        $('#bcSeerrStatus').textContent = seerrConfigured() ? 'Saved. Use Test connection to check it.' : 'Saved. Seerr requests are turned off until both fields are filled in.';
+                        if (state.preview) { renderRows(); }
+                        if (state.lastReport) { renderReportRows(); }
+                        updateSeerrButtons();
+                    }, function () {
+                        Dashboard.hideLoadingMsg();
+                        alertMessage('Could not save the Seerr settings.');
+                    });
+                }
+
+                function onSeerrTest() {
+                    var status = $('#bcSeerrStatus');
+                    status.textContent = 'Testing…';
+                    post('BatchCollections/Seerr/Test', { Url: $('#bcSeerrUrl').value.trim(), ApiKey: $('#bcSeerrKey').value.trim() }).then(function (response) {
+                        var unsaved = state.config && ($('#bcSeerrUrl').value.trim() !== (state.config.SeerrUrl || '') || $('#bcSeerrKey').value.trim() !== (state.config.SeerrApiKey || ''));
+                        status.textContent = response.Message + (response.Ok && unsaved ? ' Click Save to use these settings.' : '');
+                    }, function (err) {
+                        readError(err).then(function (message) { status.textContent = message; });
+                    });
+                }
+
                 // ---------- Wiring ----------
 
                 $('#bcForm').addEventListener('submit', onPreview);
@@ -833,6 +1053,11 @@
                 $('#bcPresetLoad').addEventListener('click', onPresetLoad);
                 $('#bcPresetSave').addEventListener('click', onPresetSave);
                 $('#bcPresetDelete').addEventListener('click', onPresetDelete);
+                $('#bcSeerrSave').addEventListener('click', onSeerrSave);
+                $('#bcSeerrTest').addEventListener('click', onSeerrTest);
+                Array.prototype.forEach.call(page.querySelectorAll('.bc-seerr-all'), function (button) {
+                    button.addEventListener('click', onSeerrAll);
+                });
 
                 page.addEventListener('pageshow', function () {
                     Dashboard.showLoadingMsg();

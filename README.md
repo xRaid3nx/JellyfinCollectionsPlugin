@@ -40,7 +40,7 @@ Type a collection name and click **Preview**. The plugin finds each title in you
 - **It never removes anything.** It only creates collections and adds to them.
 - **Unsure matches are never added automatically.** If a title could mean more than one thing (like *The Lion King* 1994 vs. 2019), you pick.
 - **Running the same list again is harmless.** Items already in the collection are skipped.
-- **It works offline.** It only looks at your own library and never contacts the internet.
+- **It works offline.** It only looks at your own library. The one exception is the optional Seerr connection, which only talks to the Seerr server you configure.
 - **Admins only.** Regular users can't see or use it.
 
 ## Install
@@ -95,6 +95,18 @@ After the restart, go to **Dashboard**. **Batch Collections** appears in the lef
 5. Click **Apply**. A report shows what was added. **Copy "Not found"** copies the missing titles, which makes a handy shopping list.
 
 ![Report after Apply](docs/screenshots/report.png)
+
+### Request missing titles in Seerr
+
+If you run [Seerr](https://docs.seerr.dev/) (or Jellyseerr/Overseerr), titles that are **Not found** can be requested straight from the preview or the report.
+
+1. Open **Seerr** on the Batch Collections page.
+2. Enter the Seerr address **as the Jellyfin server sees it** (for example `http://192.168.1.10:5055`, or the container name if both run on the same Docker network) and the API key from Seerr's *Settings → General*.
+3. Click **Save**, then **Test connection**.
+
+Each Not found line now has a **Request in Seerr** button, and **Request all "Not found" in Seerr** sends every missing line. The plugin searches Seerr for the title and only requests it when there's one clear match (same title, and same year if your line has one). Otherwise the line shows a dropdown so you can pick. Titles Seerr already has or already shows as available are left alone. Shows are requested with all seasons, using Seerr's default server and quality profile.
+
+Seerr works best when it's connected to the same Jellyfin server, so "available" in Seerr means the same thing as "in your library" here.
 
 **Tip: presets.** Open **Presets** to save a list under a name. When you add more movies later, load the preset and apply it again; only the new ones get added.
 

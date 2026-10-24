@@ -16,5 +16,7 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<ILibraryCatalog, LibraryCatalog>();
         serviceCollection.AddSingleton<ICollectionService, CollectionService>();
         serviceCollection.AddSingleton<BatchCollectionsService>();
+        serviceCollection.AddSingleton<ISeerrSettings, PluginSeerrSettings>();
+        serviceCollection.AddSingleton<SeerrService>();
     }
 }

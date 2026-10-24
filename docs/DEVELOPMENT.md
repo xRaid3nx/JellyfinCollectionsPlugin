@@ -38,6 +38,8 @@ Build for a different Jellyfin version with `-p:JellyfinVersion=x.y.z`. Analyzer
 - `GET /BatchCollections/Collections`
 - `POST /BatchCollections/Preview`: `{ List, CollectionName, MediaTypes, YearTolerance, Fuzzy }`
 - `POST /BatchCollections/Apply`: `{ CollectionName, ItemIds, LockMetadata }`
+- `POST /BatchCollections/Seerr/Test`: `{ Url, ApiKey }` (blank values use the saved settings)
+- `POST /BatchCollections/Seerr/Request`: `{ Items: [{ LineNumber, Title, Year, MediaTypes, TmdbId?, MediaType? }] }`, at most 50 per call
 
 ## Releasing
 

@@ -35,3 +35,12 @@ Where the real Jellyfin 12.2.0 packages or this machine differed from the prompt
 - **Fuzzy matching uses normalised Levenshtein ≥ 0.90** on the loose key. For short titles that's effectively an exact match, which avoids false positives like *Up* vs *Us*. Fuzzy hits must also be within ±1 year when a year is given, and are never ticked by default.
 - **Only `ForcedSortName`** is used as a sort-name alias. Jellyfin's computed sort name adds nothing over the normalised title.
 - **Known limit: `101 Dalmatians` vs *One Hundred and One Dalmatians*.** Converting numerals to words in general would create more false matches than it fixes. It's documented in the README.
+
+## Seerr
+
+- **The browser never talks to Seerr.** The page calls the plugin's admin-only endpoints and the Jellyfin server calls Seerr, so the address must be reachable from the Jellyfin host and there are no CORS issues.
+- **The API key is stored in the plugin configuration** next to the presets. It is visible to Jellyfin administrators (who could already read every plugin setting) and is never logged.
+- **One Seerr instance, connected to Jellyfin** (the owner moved Seerr off Plex for this). With Seerr on a different media server, its "available" state wouldn't match this library.
+- **Matching reuses the library title keys** (strict or loose) plus an exact year when the line has one. Anything else is a choice for the user, the same rule as fuzzy matches in Preview.
+- **Requests use Seerr's defaults**: no 4K, default server and profile, all seasons for shows. Status 4/5 (partly/fully available) and 2/3 (pending/processing) are reported instead of requested; HTTP 409 from Seerr counts as already requested.
+- **Bulk requests run sequentially in chunks of 10** from the page so progress is visible. If Seerr can't be reached, the rest of the chunk fails at once instead of waiting for each timeout (15 s).

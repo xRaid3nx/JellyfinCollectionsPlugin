@@ -24,16 +24,19 @@ public class BatchCollectionsController : ControllerBase
     private const long MaxRequestBytes = 2 * 1024 * 1024;
 
     private readonly BatchCollectionsService _service;
+    private readonly SeerrService _seerr;
     private readonly ILogger<BatchCollectionsController> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BatchCollectionsController"/> class.
     /// </summary>
     /// <param name="service">The batch collections service.</param>
+    /// <param name="seerr">The Seerr service.</param>
     /// <param name="logger">The logger.</param>
-    public BatchCollectionsController(BatchCollectionsService service, ILogger<BatchCollectionsController> logger)
+    public BatchCollectionsController(BatchCollectionsService service, SeerrService seerr, ILogger<BatchCollectionsController> logger)
     {
         _service = service;
+        _seerr = seerr;
         _logger = logger;
     }
 
@@ -94,6 +97,57 @@ public class BatchCollectionsController : ControllerBase
         {
             _logger.LogError(ex, "Batch Collections: apply failed");
             return StatusCode(StatusCodes.Status500InternalServerError, new ErrorDto { Message = "Jellyfin could not update the collection. Check the server log for details." });
+        }
+    }
+
+    /// <summary>
+    /// Checks that Seerr answers and accepts the API key.
+    /// </summary>
+    /// <param name="request">The address and key to test; blank values use the saved settings.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The test result.</returns>
+    [HttpPost("Seerr/Test")]
+    [Consumes(MediaTypeNames.Application.Json)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<SeerrTestResponse>> SeerrTest([FromBody] SeerrTestRequest request, CancellationToken cancellationToken)
+    {
+        return await RunAsync(async () => Ok(await _seerr.TestAsync(request, cancellationToken).ConfigureAwait(false)), "Seerr test").ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Requests titles that aren't in the library in Seerr.
+    /// </summary>
+    /// <param name="request">The titles.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>One result per title.</returns>
+    [HttpPost("Seerr/Request")]
+    [Consumes(MediaTypeNames.Application.Json)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IReadOnlyList<SeerrResultDto>>> SeerrRequest([FromBody] SeerrRequestBody request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return await RunAsync(async () => Ok(await _seerr.RequestAsync(request.Items, cancellationToken).ConfigureAwait(false)), "Seerr request").ConfigureAwait(false);
+    }
+
+    private async Task<ActionResult> RunAsync(Func<Task<ActionResult>> action, string operation)
+    {
+        try
+        {
+            return await action().ConfigureAwait(false);
+        }
+        catch (BatchRequestException ex)
+        {
+            return BadRequest(new ErrorDto { Message = ex.Message });
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            _logger.LogError(ex, "Batch Collections: {Operation} failed", operation);
+            return StatusCode(StatusCodes.Status500InternalServerError, new ErrorDto { Message = "Something went wrong on the server. Check the server log for details." });
         }
     }
 

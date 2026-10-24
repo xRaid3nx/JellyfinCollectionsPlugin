@@ -30,4 +30,8 @@ Secondary goal: publishable later (clean, documented, GPL-3.0, tested, installab
 - Idempotent re-runs, collections that are partly filled, two collections with the same name.
 - A 5,000-line list, an empty list, an empty or whitespace-only name, an empty library, and a media type with zero items.
 
-Do **not** add features beyond the build prompt.
+## Additions after the build prompt
+
+- **Seerr requests** (requested by the owner, 2026-10-24). Not found lines can be requested in Seerr, one at a time or all at once. Seerr address and API key live in the plugin configuration. A title is requested only when Seerr has exactly one result with the same title (and the same year if the line has one); otherwise the user picks. Media Seerr reports as requested or available is not re-requested.
+
+Do **not** add features beyond the build prompt and the additions listed above.

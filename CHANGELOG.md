@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. Versions use Jellyfin's four-part format.
 
+## 1.1.0.0
+
+- Seerr requests: titles that are Not found can be requested in Seerr (or Jellyseerr/Overseerr) from the preview or the report, one at a time or all at once.
+- New Seerr panel for the server address and API key, with a connection test.
+- A title is requested only when Seerr has one clear match (same title, and same year if given); otherwise you pick from a dropdown. Titles Seerr already has requested or available are skipped.
+
 ## 1.0.1.0
 
 - New two-column layout: the list on the left, settings and Preview on the right. It stacks into one column on narrow screens.
