@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented here. Versions use Jellyfin's four-part format.
 
+## 1.1.1.0
+
+- Not found rows show only the Seerr button or status badge, without the "—" placeholder or the repeated message. The reason is still shown when a request fails.
+
 ## 1.1.0.0
 
 - Seerr requests: titles that are Not found can be requested in Seerr (or Jellyseerr/Overseerr) from the preview or the report, one at a time or all at once.

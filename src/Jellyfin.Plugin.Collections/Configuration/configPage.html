@@ -57,7 +57,8 @@
             .batchCollectionsPage .bc-warning { padding: .6em .8em; border-left: .3em solid #db9a04; background: rgba(219,154,4,.15); margin: .5em 0; }
             .batchCollectionsPage .bc-hidden { display: none !important; }
             .batchCollectionsPage .bc-table input[type=checkbox] { width: 1.2em; height: 1.2em; cursor: pointer; }
-            .batchCollectionsPage .bc-seerr { display: flex; flex-wrap: wrap; align-items: center; gap: .4em .6em; margin-top: .2em; }
+            .batchCollectionsPage .bc-seerr { display: flex; flex-wrap: wrap; align-items: center; gap: .4em .6em; }
+            .batchCollectionsPage .bc-seerr:not(:first-child) { margin-top: .2em; }
             .batchCollectionsPage .bc-seerr select { max-width: 22em; }
             .batchCollectionsPage .bc-seerr .emby-button { margin: 0; padding: .3em .8em; font-size: .85em; }
             .batchCollectionsPage .bc-s-Requested { background: rgba(46,160,67,.35); }
@@ -648,6 +649,7 @@
 
                     var matchCell = el('td');
                     var candidates = line.Candidates;
+                    var seerr = line.Status === 'NotFound' ? seerrWidget(line) : null;
                     if (candidates.length > 1 || (candidates.length === 1 && line.Status !== 'Matched' && line.Status !== 'AlreadyInCollection')) {
                         var select = el('select', { 'aria-label': 'Choose the library item for line ' + line.LineNumber });
                         if (line.Status === 'Ambiguous' || !row.choice) {
@@ -670,13 +672,12 @@
                         matchCell.appendChild(select);
                     } else if (candidates.length === 1) {
                         matchCell.appendChild(el('span', { text: itemLabel(candidates[0]) }));
-                    } else {
+                    } else if (!seerr) {
                         matchCell.appendChild(el('span', { className: 'bc-note', text: '—' }));
                     }
                     if (line.Note) {
                         matchCell.appendChild(el('div', { className: 'bc-note', text: line.Note }));
                     }
-                    var seerr = line.Status === 'NotFound' ? seerrWidget(line) : null;
                     if (seerr) { matchCell.appendChild(seerr); }
 
                     var tr = el('tr', { className: line.Status === 'AlreadyInCollection' || (line.Status === 'NotFound' && !seerr) ? 'bc-dim' : '' }, [
@@ -953,8 +954,8 @@
                         box.appendChild(pick);
                         return;
                     }
-                    if (result.Message) { box.appendChild(el('span', { className: 'bc-note', text: result.Message })); }
                     if (result.Outcome === 'Failed') {
+                        if (result.Message) { box.appendChild(el('span', { className: 'bc-note', text: result.Message })); }
                         box.appendChild(smallButton('Try again', function () { requestSeerr([seerrItem(line)]); }));
                     }
                 }
