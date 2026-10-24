@@ -145,7 +145,7 @@ public sealed class SeerrService : IDisposable
             }
             catch (Exception ex) when (IsTransportError(ex, cancellationToken))
             {
-                _logger.LogWarning(ex, "Batch Collections: Seerr at {Url} could not be reached", baseUri);
+                _logger.LogWarning(ex, "Paste Collections: Seerr at {Url} could not be reached", baseUri);
                 unreachable = "Could not reach Seerr from the Jellyfin server (" + ex.Message + ").";
                 results.Add(new SeerrResultDto { LineNumber = item.LineNumber, Outcome = SeerrOutcome.Failed, Message = unreachable });
             }
@@ -357,7 +357,7 @@ public sealed class SeerrService : IDisposable
         using var response = await SendAsync(baseUri, key, HttpMethod.Post, "request", body, cancellationToken).ConfigureAwait(false);
         if (response.IsSuccessStatusCode)
         {
-            _logger.LogInformation("Batch Collections: requested {MediaType} {TmdbId} in Seerr", item.MediaType, item.TmdbId);
+            _logger.LogInformation("Paste Collections: requested {MediaType} {TmdbId} in Seerr", item.MediaType, item.TmdbId);
             return new SeerrResultDto { LineNumber = lineNumber, Outcome = SeerrOutcome.Requested, Item = item, Message = "Requested " + Describe(item) + "." };
         }
 

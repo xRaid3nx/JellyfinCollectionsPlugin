@@ -1,6 +1,6 @@
 # Intent
 
-**Batch Collections** is a server-side Jellyfin plugin (`Jellyfin.Plugin.Collections`) for Jellyfin 12.2 / .NET 10.
+**Paste Collections** is a server-side Jellyfin plugin (`Jellyfin.Plugin.Collections`) for Jellyfin 12.2 / .NET 10.
 
 ## Goal
 
@@ -18,7 +18,7 @@ Secondary goal: publishable later (clean, documented, GPL-3.0, tested, installab
 - Statuses: Matched, AlreadyInCollection, Ambiguous, PossibleYearOffByOne, PossibleFuzzy (≥ 0.90), YearMismatch, NotFound. Fuzzy and off-by-one matches are never auto-selected.
 - Collections: case-insensitive exact name lookup. If several have the same name, use the largest and warn. Create or add in one call, filter out existing members, never remove anything. Items are looked up server-wide.
 - Report: counts plus a table, with Copy buttons for "Not found" and for the full report.
-- Admin-only REST API under `/BatchCollections`. Uses only official `ICollectionManager` / `ILibraryManager` APIs, never direct DB access, never legacy `/emby` URLs.
+- Admin-only REST API under `/PasteCollections`. Uses only official `ICollectionManager` / `ILibraryManager` APIs, never direct DB access, never legacy `/emby` URLs.
 
 ## Edge cases that must be handled and tested (§8)
 

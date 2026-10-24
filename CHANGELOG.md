@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented here. Versions use Jellyfin's four-part format.
 
+## Unreleased
+
+- Renamed the product to **Paste Collections** (same plugin GUID). Dashboard page and API routes are now under `PasteCollections`.
+- GitHub repository renamed to [PasteCollections](https://github.com/xRaid3nx/PasteCollections) (old `JellyfinCollectionsPlugin` URL redirects).
+
 ## 1.1.1.0
 
 - Not found rows show only the Seerr button or status badge, without the "—" placeholder or the repeated message. The reason is still shown when a request fails.

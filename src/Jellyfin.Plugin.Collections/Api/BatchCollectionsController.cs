@@ -13,10 +13,10 @@ using Microsoft.Extensions.Logging;
 namespace Jellyfin.Plugin.Collections.Api;
 
 /// <summary>
-/// Batch Collections API. Administrators only.
+/// Paste Collections API. Administrators only.
 /// </summary>
 [ApiController]
-[Route("BatchCollections")]
+[Route("PasteCollections")]
 [Authorize(Policy = "RequiresElevation")]
 [Produces(MediaTypeNames.Application.Json)]
 public class BatchCollectionsController : ControllerBase
@@ -95,7 +95,7 @@ public class BatchCollectionsController : ControllerBase
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
-            _logger.LogError(ex, "Batch Collections: apply failed");
+            _logger.LogError(ex, "Paste Collections: apply failed");
             return StatusCode(StatusCodes.Status500InternalServerError, new ErrorDto { Message = "Jellyfin could not update the collection. Check the server log for details." });
         }
     }
@@ -146,7 +146,7 @@ public class BatchCollectionsController : ControllerBase
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
-            _logger.LogError(ex, "Batch Collections: {Operation} failed", operation);
+            _logger.LogError(ex, "Paste Collections: {Operation} failed", operation);
             return StatusCode(StatusCodes.Status500InternalServerError, new ErrorDto { Message = "Something went wrong on the server. Check the server log for details." });
         }
     }
@@ -167,7 +167,7 @@ public class BatchCollectionsController : ControllerBase
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
-            _logger.LogError(ex, "Batch Collections: {Operation} failed", operation);
+            _logger.LogError(ex, "Paste Collections: {Operation} failed", operation);
             return StatusCode(StatusCodes.Status500InternalServerError, new ErrorDto { Message = "Something went wrong on the server. Check the server log for details." });
         }
     }

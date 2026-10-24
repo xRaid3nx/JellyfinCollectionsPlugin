@@ -1,17 +1,18 @@
 <p align="center">
-  <img src="docs/images/thumb.png" alt="Batch Collections" width="640" />
+  <img src="docs/images/thumb.png" alt="Paste Collections" width="640" />
 </p>
 
-<h1 align="center">Batch Collections for Jellyfin</h1>
+<h1 align="center">Paste Collections for Jellyfin</h1>
 
 <p align="center">
-  Paste a list of movie or show titles. Get a collection.
+  Paste a list of movie or show titles. Get a collection.<br />
+  Optionally request what's missing in Seerr.
 </p>
 
 <p align="center">
   <img alt="Jellyfin 12.2" src="https://img.shields.io/badge/Jellyfin-12.2-AA5CC3?logo=jellyfin&logoColor=white" />
   <img alt="License GPL-3.0" src="https://img.shields.io/badge/license-GPL--3.0-blue" />
-  <a href="https://github.com/xRaid3nx/JellyfinCollectionsPlugin/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/xRaid3nx/JellyfinCollectionsPlugin" /></a>
+  <a href="https://github.com/xRaid3nx/PasteCollections/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/xRaid3nx/PasteCollections" /></a>
 </p>
 
 ---
@@ -20,7 +21,7 @@
 
 Building a collection in Jellyfin normally means opening each movie and choosing *Add to collection*, one at a time. That's fine for five movies and painful for fifty.
 
-**Batch Collections** lets you paste a whole list instead:
+**Paste Collections** lets you paste a whole list instead:
 
 ```text
 The Lion King (1994)
@@ -31,6 +32,8 @@ Moana
 ```
 
 Type a collection name and click **Preview**. The plugin finds each title in your library and shows you what it found. Then click **Apply**, and every item you approved is added to the collection. If the collection doesn't exist yet, it's created for you.
+
+Titles that are **Not found** can optionally be requested in [Seerr](https://docs.seerr.dev/) (or Jellyseerr/Overseerr) from the preview or the report — see [Request missing titles in Seerr](#request-missing-titles-in-seerr).
 
 ![Preview screen](docs/screenshots/preview.png)
 
@@ -49,24 +52,24 @@ You need **Jellyfin 12.2** and an administrator account.
 
 1. In Jellyfin, open **Dashboard → Plugins → Repositories** (or *Manage Repositories*).
 2. Click **+** (New Repository) and enter:
-   - **Name:** `Batch Collections`
+   - **Name:** `Paste Collections`
    - **URL:**
      ```text
-     https://raw.githubusercontent.com/xRaid3nx/JellyfinCollectionsPlugin/main/manifest.json
+     https://raw.githubusercontent.com/xRaid3nx/PasteCollections/main/manifest.json
      ```
 3. Click **Save**.
-4. Go to **Dashboard → Plugins → Catalog**, find **Batch Collections**, and click **Install**.
+4. Go to **Dashboard → Plugins → Catalog**, find **Paste Collections**, and click **Install**.
 5. **Restart Jellyfin** (Dashboard → Restart, or restart the service/app).
 
 ### Open it
 
-After the restart, go to **Dashboard**. **Batch Collections** appears in the left sidebar, in the *Plugins* section.
+After the restart, go to **Dashboard**. **Paste Collections** appears in the left sidebar, in the *Plugins* section.
 
 <details>
 <summary>Manual install (without the repository)</summary>
 
-1. Download the `.zip` from the [latest release](https://github.com/xRaid3nx/JellyfinCollectionsPlugin/releases/latest).
-2. Create a folder named `Batch Collections_1.0.0.0` inside your Jellyfin `plugins` folder:
+1. Download the `.zip` from the [latest release](https://github.com/xRaid3nx/PasteCollections/releases/latest).
+2. Create a folder named `Paste Collections_1.0.0.0` inside your Jellyfin `plugins` folder:
    - Windows: `%ProgramData%\Jellyfin\Server\plugins` (or `<data folder>\plugins` for a portable install)
    - Linux: `/var/lib/jellyfin/plugins`
    - Docker: `/config/plugins` (inside the container)
@@ -100,7 +103,7 @@ After the restart, go to **Dashboard**. **Batch Collections** appears in the lef
 
 If you run [Seerr](https://docs.seerr.dev/) (or Jellyseerr/Overseerr), titles that are **Not found** can be requested straight from the preview or the report.
 
-1. Open **Seerr** on the Batch Collections page.
+1. Open **Seerr** on the Paste Collections page.
 2. Enter the Seerr address **as the Jellyfin server sees it** (for example `http://192.168.1.10:5055`, or the container name if both run on the same Docker network) and the API key from Seerr's *Settings → General*.
 3. Click **Save**, then **Test connection**.
 
@@ -149,9 +152,9 @@ Yes. Shows are added as whole series.
 
 ## Troubleshooting
 
-- **I don't see it in the sidebar:** go to **Dashboard → Plugins → My Plugins** and check that Batch Collections is listed as *Active*. Restart Jellyfin if you just installed it.
+- **I don't see it in the sidebar:** go to **Dashboard → Plugins → My Plugins** and check that Paste Collections is listed as *Active*. Restart Jellyfin if you just installed it.
 - **The plugin shows "NotSupported" or "Malfunctioned":** your Jellyfin version doesn't match. This release is for Jellyfin 12.2.
-- **Something went wrong:** open **Dashboard → Logs** and look for lines containing `Batch Collections:`. Please include them when you [open an issue](https://github.com/xRaid3nx/JellyfinCollectionsPlugin/issues).
+- **Something went wrong:** open **Dashboard → Logs** and look for lines containing `Paste Collections:`. Please include them when you [open an issue](https://github.com/xRaid3nx/PasteCollections/issues).
 
 ## For developers
 

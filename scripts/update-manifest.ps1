@@ -3,7 +3,7 @@
   Adds (or replaces) a version entry in manifest.json, the Jellyfin plugin repository manifest.
 
 .EXAMPLE
-  .\scripts\update-manifest.ps1 -Version 1.0.0.0 -TargetAbi 12.2.0.0 -SourceUrl https://.../batch-collections_1.0.0.0_jf12.2.0.zip -Checksum <md5>
+  .\scripts\update-manifest.ps1 -Version 1.0.0.0 -TargetAbi 12.2.0.0 -SourceUrl https://.../paste-collections_1.0.0.0_jf12.2.0.zip -Checksum <md5>
 #>
 [CmdletBinding()]
 param(

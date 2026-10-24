@@ -10,7 +10,7 @@ using MediaBrowser.Model.Serialization;
 namespace Jellyfin.Plugin.Collections;
 
 /// <summary>
-/// The Batch Collections plugin.
+/// The Paste Collections plugin.
 /// </summary>
 public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
 {
@@ -31,7 +31,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     }
 
     /// <inheritdoc />
-    public override string Name => "Batch Collections";
+    public override string Name => "Paste Collections";
 
     /// <inheritdoc />
     public override Guid Id => Guid.Parse(PluginId);
@@ -51,8 +51,8 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         [
             new PluginPageInfo
             {
-                Name = "BatchCollections",
-                DisplayName = "Batch Collections",
+                Name = "PasteCollections",
+                DisplayName = "Paste Collections",
                 EmbeddedResourcePath = string.Format(CultureInfo.InvariantCulture, "{0}.Configuration.configPage.html", GetType().Namespace),
                 EnableInMainMenu = true,
                 MenuSection = "server",

@@ -3,7 +3,7 @@ using Jellyfin.Plugin.Collections.Core;
 namespace Jellyfin.Plugin.Collections.Api.Dto;
 
 /// <summary>
-/// Request body for <c>POST /BatchCollections/Preview</c>.
+/// Request body for <c>POST /PasteCollections/Preview</c>.
 /// </summary>
 public sealed class PreviewRequest
 {

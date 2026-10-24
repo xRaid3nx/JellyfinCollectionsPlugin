@@ -4,7 +4,7 @@ using Jellyfin.Plugin.Collections.Core;
 namespace Jellyfin.Plugin.Collections.Api.Dto;
 
 /// <summary>
-/// Response for <c>POST /BatchCollections/Preview</c>.
+/// Response for <c>POST /PasteCollections/Preview</c>.
 /// </summary>
 public sealed class PreviewResponse
 {

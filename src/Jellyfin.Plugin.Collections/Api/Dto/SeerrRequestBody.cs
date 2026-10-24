@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace Jellyfin.Plugin.Collections.Api.Dto;
 
 /// <summary>
-/// Request body for <c>POST /BatchCollections/Seerr/Request</c>.
+/// Request body for <c>POST /PasteCollections/Seerr/Request</c>.
 /// </summary>
 public sealed class SeerrRequestBody
 {

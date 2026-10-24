@@ -3,7 +3,7 @@
   Builds a release zip for the Jellyfin plugin catalog and prints its MD5 checksum.
 
 .DESCRIPTION
-  Output: artifacts\batch-collections_<version>_jf<JellyfinVersion>.zip (gitignored).
+  Output: artifacts\paste-collections_<version>_jf<JellyfinVersion>.zip (gitignored).
   Used by the release workflow and usable locally.
 
 .EXAMPLE
@@ -29,7 +29,7 @@ if ($Version -notmatch '^\d+\.\d+\.\d+\.\d+$') { throw "Version must have four p
 if ($LASTEXITCODE -ne 0) { throw 'Publish failed.' }
 
 New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
-$zip = Join-Path $OutputDir "batch-collections_${Version}_jf$JellyfinVersion.zip"
+$zip = Join-Path $OutputDir "paste-collections_${Version}_jf$JellyfinVersion.zip"
 if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force }
 Compress-Archive -LiteralPath (Join-Path $publishDir 'Jellyfin.Plugin.Collections.dll') -DestinationPath $zip
 

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Jellyfin.Plugin.Collections.Api.Dto;
 
 /// <summary>
-/// Request body for <c>POST /BatchCollections/Apply</c>.
+/// Request body for <c>POST /PasteCollections/Apply</c>.
 /// </summary>
 public sealed class ApplyRequest
 {

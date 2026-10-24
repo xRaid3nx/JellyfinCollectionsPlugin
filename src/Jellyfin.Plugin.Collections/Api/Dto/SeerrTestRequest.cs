@@ -1,7 +1,7 @@
 namespace Jellyfin.Plugin.Collections.Api.Dto;
 
 /// <summary>
-/// Request body for <c>POST /BatchCollections/Seerr/Test</c>. Blank values fall back to the saved settings.
+/// Request body for <c>POST /PasteCollections/Seerr/Test</c>. Blank values fall back to the saved settings.
 /// </summary>
 public sealed class SeerrTestRequest
 {

@@ -116,7 +116,7 @@ public sealed class CollectionService : ICollectionService
         }).ConfigureAwait(false);
 
         RememberWrite(collection.Id, name, itemIds);
-        _logger.LogInformation("Batch Collections: created collection {Name} ({Id}) with {Count} items", name, collection.Id, itemIds.Count);
+        _logger.LogInformation("Paste Collections: created collection {Name} ({Id}) with {Count} items", name, collection.Id, itemIds.Count);
         return collection.Id;
     }
 
@@ -132,7 +132,7 @@ public sealed class CollectionService : ICollectionService
         cancellationToken.ThrowIfCancellationRequested();
         await _collectionManager.AddToCollectionAsync(collectionId, itemIds).ConfigureAwait(false);
         RememberWrite(collectionId, null, itemIds);
-        _logger.LogInformation("Batch Collections: added {Count} items to collection {Id}", itemIds.Count, collectionId);
+        _logger.LogInformation("Paste Collections: added {Count} items to collection {Id}", itemIds.Count, collectionId);
     }
 
     private void RememberWrite(Guid collectionId, string? name, IReadOnlyCollection<Guid> itemIds)

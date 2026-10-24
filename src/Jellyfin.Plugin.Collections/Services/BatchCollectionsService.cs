@@ -102,7 +102,7 @@ public sealed class BatchCollectionsService
         var results = Matcher.Match(catalog, parsed.Lines, options, cancellationToken);
         var counts = Enum.GetValues<MatchStatus>().ToDictionary(s => s, s => results.Count(r => r.Status == s));
         _logger.LogInformation(
-            "Batch Collections: preview for {Collection}: {Lines} lines, {Matched} matched, {NotFound} not found",
+            "Paste Collections: preview for {Collection}: {Lines} lines, {Matched} matched, {NotFound} not found",
             name,
             results.Count,
             counts[MatchStatus.Matched],
@@ -169,7 +169,7 @@ public sealed class BatchCollectionsService
                 var toAdd = validInOrder.Where(id => !existing.MemberIds.Contains(id)).ToList();
                 await _collections.AddAsync(existing.Id, toAdd, cancellationToken).ConfigureAwait(false);
                 _logger.LogInformation(
-                    "Batch Collections: apply to existing {Collection}: added {Added}, already present {Present}, rejected {Failed}",
+                    "Paste Collections: apply to existing {Collection}: added {Added}, already present {Present}, rejected {Failed}",
                     existing.Name,
                     toAdd.Count,
                     validInOrder.Count - toAdd.Count,
@@ -193,7 +193,7 @@ public sealed class BatchCollectionsService
 
             var id = await _collections.CreateAsync(name, validInOrder, request.LockMetadata, cancellationToken).ConfigureAwait(false);
             _logger.LogInformation(
-                "Batch Collections: created {Collection} with {Added} items, rejected {Failed}",
+                "Paste Collections: created {Collection} with {Added} items, rejected {Failed}",
                 name,
                 validInOrder.Count,
                 failed.Count);

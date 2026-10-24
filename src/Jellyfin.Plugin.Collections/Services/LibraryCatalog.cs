@@ -51,7 +51,7 @@ public sealed class LibraryCatalog : ILibraryCatalog
 
         cancellationToken.ThrowIfCancellationRequested();
         var entries = Map(items);
-        _logger.LogInformation("Batch Collections: catalog has {Count} items ({MediaTypes})", entries.Count, mediaTypes);
+        _logger.LogInformation("Paste Collections: catalog has {Count} items ({MediaTypes})", entries.Count, mediaTypes);
         return entries;
     }
 

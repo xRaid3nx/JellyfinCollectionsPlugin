@@ -2,75 +2,75 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Batch Collections</title>
+    <title>Paste Collections</title>
 </head>
 <body>
-    <div id="BatchCollectionsPage" data-role="page" class="page type-interior pluginConfigurationPage batchCollectionsPage" data-require="emby-input,emby-button,emby-select,emby-checkbox,emby-textarea">
+    <div id="PasteCollectionsPage" data-role="page" class="page type-interior pluginConfigurationPage pasteCollectionsPage" data-require="emby-input,emby-button,emby-select,emby-checkbox,emby-textarea">
         <style>
-            .batchCollectionsPage .bc-section { margin-bottom: 2em; }
-            .batchCollectionsPage .content-primary { max-width: 80em; }
-            .batchCollectionsPage .bc-layout { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(22em, 1fr); gap: 1.5em 2.5em; align-items: start; }
-            @media (max-width: 64em) { .batchCollectionsPage .bc-layout { grid-template-columns: minmax(0, 1fr); } }
-            .batchCollectionsPage .bc-field { margin-bottom: 1.4em; }
-            .batchCollectionsPage .bc-label { display: block; margin: 0 0 .4em; font-size: .95em; }
-            .batchCollectionsPage .bc-field .inputContainer, .batchCollectionsPage .bc-field .selectContainer,
-            .batchCollectionsPage .bc-row .inputContainer, .batchCollectionsPage .bc-row .selectContainer { margin: 0; }
-            .batchCollectionsPage .bc-field .fieldDescription { margin-top: .4em; }
-            .batchCollectionsPage .bc-list { display: block; width: 100%; box-sizing: border-box; resize: vertical; min-height: 10em; padding: .6em .7em; font-family: Consolas, "Courier New", monospace; font-size: .95em; line-height: 1.45; white-space: pre; overflow: auto; color: inherit; background: #292929; border: 1px solid rgba(128,128,128,.45); border-radius: .2em; }
-            .batchCollectionsPage .bc-list:focus { outline: none; border-color: #00a4dc; }
-            .batchCollectionsPage .bc-checks { display: grid; grid-template-columns: 1fr 1fr; gap: 1em; margin-bottom: 1.4em; }
-            .batchCollectionsPage .bc-checks .checkboxContainer { margin: 0; }
-            .batchCollectionsPage .bc-checks .fieldDescription { font-size: .85em; margin: .2em 0 0; padding-left: 0; }
-            .batchCollectionsPage .bc-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .75em; align-items: stretch; margin-bottom: 1.2em; }
-            .batchCollectionsPage .bc-row > div { display: flex; }
-            .batchCollectionsPage .bc-row > div > .emby-input, .batchCollectionsPage .bc-row > div > .emby-select { flex: 1 1 auto; width: 100%; height: 100%; box-sizing: border-box; }
-            .batchCollectionsPage .bc-row .bc-buttons, .batchCollectionsPage .bc-toolbar .bc-buttons { margin: 0; flex-wrap: nowrap; align-items: stretch; }
-            .batchCollectionsPage .bc-row .emby-button, .batchCollectionsPage .bc-toolbar .emby-button { height: auto; }
-            .batchCollectionsPage input.emby-input { min-height: 2.6em; box-sizing: border-box; }
-            .batchCollectionsPage .bc-toolbar { display: grid; grid-template-columns: minmax(10em, 14em) minmax(10em, 14em) auto; column-gap: .75em; align-items: stretch; margin-bottom: 1em; }
-            .batchCollectionsPage .bc-toolbar .selectContainer { margin: 0; display: flex; }
-            .batchCollectionsPage .bc-toolbar .selectContainer > .emby-select { flex: 1 1 auto; width: 100%; height: 100%; box-sizing: border-box; }
-            .batchCollectionsPage .bc-toolbar .bc-buttons { justify-self: start; }
-            @media (max-width: 40em) { .batchCollectionsPage .bc-toolbar { grid-template-columns: 1fr 1fr; } .batchCollectionsPage .bc-toolbar > span { display: none; } .batchCollectionsPage .bc-toolbar .bc-buttons { grid-column: 1 / -1; margin-top: .75em; } }
-            .batchCollectionsPage details.bc-presets { margin-top: 1em; padding: .8em 1em; border: 1px solid rgba(128,128,128,.3); border-radius: .3em; }
-            .batchCollectionsPage details.bc-presets > summary { cursor: pointer; font-size: 1.05em; }
-            .batchCollectionsPage details.bc-presets[open] > summary { margin-bottom: .8em; }
-            .batchCollectionsPage .bc-buttons { display: flex; flex-wrap: wrap; gap: .5em; margin: 1em 0; }
-            .batchCollectionsPage .bc-buttons .emby-button { margin: 0; }
-            .batchCollectionsPage .bc-chips { display: flex; flex-wrap: wrap; gap: .5em; margin: .5em 0 1em; }
-            .batchCollectionsPage .bc-chip, .batchCollectionsPage .bc-badge { display: inline-block; padding: .2em .6em; border-radius: 1em; font-size: .85em; white-space: nowrap; background: rgba(128,128,128,.25); }
-            .batchCollectionsPage .bc-s-Matched { background: rgba(46,160,67,.35); }
-            .batchCollectionsPage .bc-s-AlreadyInCollection { background: rgba(128,128,128,.3); }
-            .batchCollectionsPage .bc-s-Ambiguous { background: rgba(0,164,220,.35); }
-            .batchCollectionsPage .bc-s-PossibleYearOffByOne, .batchCollectionsPage .bc-s-PossibleFuzzy { background: rgba(219,154,4,.4); }
-            .batchCollectionsPage .bc-s-YearMismatch { background: rgba(200,90,20,.4); }
-            .batchCollectionsPage .bc-s-NotFound { background: rgba(203,36,49,.4); }
-            .batchCollectionsPage .bc-tablewrap { overflow-x: auto; max-height: 65vh; overflow-y: auto; border: 1px solid rgba(128,128,128,.3); border-radius: .3em; }
-            .batchCollectionsPage table.bc-table { width: 100%; border-collapse: collapse; }
-            .batchCollectionsPage .bc-table th, .batchCollectionsPage .bc-table td { padding: .45em .6em; text-align: left; vertical-align: middle; border-bottom: 1px solid rgba(128,128,128,.2); }
-            .batchCollectionsPage .bc-table th { position: sticky; top: 0; background: #202020; z-index: 1; }
-            .batchCollectionsPage .bc-table tr.bc-dim td { opacity: .55; }
-            .batchCollectionsPage .bc-table select { max-width: 28em; width: 100%; padding: .3em; background: #2b2b2b; color: inherit; border: 1px solid rgba(128,128,128,.5); border-radius: .2em; }
-            .batchCollectionsPage .bc-note { font-size: .85em; opacity: .75; }
-            .batchCollectionsPage .bc-raw { font-family: Consolas, "Courier New", monospace; font-size: .9em; }
-            .batchCollectionsPage .bc-counter { font-size: 1.1em; margin: .75em 0; }
-            .batchCollectionsPage .bc-warning { padding: .6em .8em; border-left: .3em solid #db9a04; background: rgba(219,154,4,.15); margin: .5em 0; }
-            .batchCollectionsPage .bc-hidden { display: none !important; }
-            .batchCollectionsPage .bc-table input[type=checkbox] { width: 1.2em; height: 1.2em; cursor: pointer; }
-            .batchCollectionsPage .bc-seerr { display: flex; flex-wrap: wrap; align-items: center; gap: .4em .6em; }
-            .batchCollectionsPage .bc-seerr:not(:first-child) { margin-top: .2em; }
-            .batchCollectionsPage .bc-seerr select { max-width: 22em; }
-            .batchCollectionsPage .bc-seerr .emby-button { margin: 0; padding: .3em .8em; font-size: .85em; }
-            .batchCollectionsPage .bc-s-Requested { background: rgba(46,160,67,.35); }
-            .batchCollectionsPage .bc-s-AlreadyRequested, .batchCollectionsPage .bc-s-AlreadyAvailable { background: rgba(128,128,128,.3); }
-            .batchCollectionsPage .bc-s-Failed { background: rgba(203,36,49,.4); }
-            .batchCollectionsPage .bc-seerr-status { margin-top: .6em; }
+            .pasteCollectionsPage .bc-section { margin-bottom: 2em; }
+            .pasteCollectionsPage .content-primary { max-width: 80em; }
+            .pasteCollectionsPage .bc-layout { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(22em, 1fr); gap: 1.5em 2.5em; align-items: start; }
+            @media (max-width: 64em) { .pasteCollectionsPage .bc-layout { grid-template-columns: minmax(0, 1fr); } }
+            .pasteCollectionsPage .bc-field { margin-bottom: 1.4em; }
+            .pasteCollectionsPage .bc-label { display: block; margin: 0 0 .4em; font-size: .95em; }
+            .pasteCollectionsPage .bc-field .inputContainer, .pasteCollectionsPage .bc-field .selectContainer,
+            .pasteCollectionsPage .bc-row .inputContainer, .pasteCollectionsPage .bc-row .selectContainer { margin: 0; }
+            .pasteCollectionsPage .bc-field .fieldDescription { margin-top: .4em; }
+            .pasteCollectionsPage .bc-list { display: block; width: 100%; box-sizing: border-box; resize: vertical; min-height: 10em; padding: .6em .7em; font-family: Consolas, "Courier New", monospace; font-size: .95em; line-height: 1.45; white-space: pre; overflow: auto; color: inherit; background: #292929; border: 1px solid rgba(128,128,128,.45); border-radius: .2em; }
+            .pasteCollectionsPage .bc-list:focus { outline: none; border-color: #00a4dc; }
+            .pasteCollectionsPage .bc-checks { display: grid; grid-template-columns: 1fr 1fr; gap: 1em; margin-bottom: 1.4em; }
+            .pasteCollectionsPage .bc-checks .checkboxContainer { margin: 0; }
+            .pasteCollectionsPage .bc-checks .fieldDescription { font-size: .85em; margin: .2em 0 0; padding-left: 0; }
+            .pasteCollectionsPage .bc-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .75em; align-items: stretch; margin-bottom: 1.2em; }
+            .pasteCollectionsPage .bc-row > div { display: flex; }
+            .pasteCollectionsPage .bc-row > div > .emby-input, .pasteCollectionsPage .bc-row > div > .emby-select { flex: 1 1 auto; width: 100%; height: 100%; box-sizing: border-box; }
+            .pasteCollectionsPage .bc-row .bc-buttons, .pasteCollectionsPage .bc-toolbar .bc-buttons { margin: 0; flex-wrap: nowrap; align-items: stretch; }
+            .pasteCollectionsPage .bc-row .emby-button, .pasteCollectionsPage .bc-toolbar .emby-button { height: auto; }
+            .pasteCollectionsPage input.emby-input { min-height: 2.6em; box-sizing: border-box; }
+            .pasteCollectionsPage .bc-toolbar { display: grid; grid-template-columns: minmax(10em, 14em) minmax(10em, 14em) auto; column-gap: .75em; align-items: stretch; margin-bottom: 1em; }
+            .pasteCollectionsPage .bc-toolbar .selectContainer { margin: 0; display: flex; }
+            .pasteCollectionsPage .bc-toolbar .selectContainer > .emby-select { flex: 1 1 auto; width: 100%; height: 100%; box-sizing: border-box; }
+            .pasteCollectionsPage .bc-toolbar .bc-buttons { justify-self: start; }
+            @media (max-width: 40em) { .pasteCollectionsPage .bc-toolbar { grid-template-columns: 1fr 1fr; } .pasteCollectionsPage .bc-toolbar > span { display: none; } .pasteCollectionsPage .bc-toolbar .bc-buttons { grid-column: 1 / -1; margin-top: .75em; } }
+            .pasteCollectionsPage details.bc-presets { margin-top: 1em; padding: .8em 1em; border: 1px solid rgba(128,128,128,.3); border-radius: .3em; }
+            .pasteCollectionsPage details.bc-presets > summary { cursor: pointer; font-size: 1.05em; }
+            .pasteCollectionsPage details.bc-presets[open] > summary { margin-bottom: .8em; }
+            .pasteCollectionsPage .bc-buttons { display: flex; flex-wrap: wrap; gap: .5em; margin: 1em 0; }
+            .pasteCollectionsPage .bc-buttons .emby-button { margin: 0; }
+            .pasteCollectionsPage .bc-chips { display: flex; flex-wrap: wrap; gap: .5em; margin: .5em 0 1em; }
+            .pasteCollectionsPage .bc-chip, .pasteCollectionsPage .bc-badge { display: inline-block; padding: .2em .6em; border-radius: 1em; font-size: .85em; white-space: nowrap; background: rgba(128,128,128,.25); }
+            .pasteCollectionsPage .bc-s-Matched { background: rgba(46,160,67,.35); }
+            .pasteCollectionsPage .bc-s-AlreadyInCollection { background: rgba(128,128,128,.3); }
+            .pasteCollectionsPage .bc-s-Ambiguous { background: rgba(0,164,220,.35); }
+            .pasteCollectionsPage .bc-s-PossibleYearOffByOne, .pasteCollectionsPage .bc-s-PossibleFuzzy { background: rgba(219,154,4,.4); }
+            .pasteCollectionsPage .bc-s-YearMismatch { background: rgba(200,90,20,.4); }
+            .pasteCollectionsPage .bc-s-NotFound { background: rgba(203,36,49,.4); }
+            .pasteCollectionsPage .bc-tablewrap { overflow-x: auto; max-height: 65vh; overflow-y: auto; border: 1px solid rgba(128,128,128,.3); border-radius: .3em; }
+            .pasteCollectionsPage table.bc-table { width: 100%; border-collapse: collapse; }
+            .pasteCollectionsPage .bc-table th, .pasteCollectionsPage .bc-table td { padding: .45em .6em; text-align: left; vertical-align: middle; border-bottom: 1px solid rgba(128,128,128,.2); }
+            .pasteCollectionsPage .bc-table th { position: sticky; top: 0; background: #202020; z-index: 1; }
+            .pasteCollectionsPage .bc-table tr.bc-dim td { opacity: .55; }
+            .pasteCollectionsPage .bc-table select { max-width: 28em; width: 100%; padding: .3em; background: #2b2b2b; color: inherit; border: 1px solid rgba(128,128,128,.5); border-radius: .2em; }
+            .pasteCollectionsPage .bc-note { font-size: .85em; opacity: .75; }
+            .pasteCollectionsPage .bc-raw { font-family: Consolas, "Courier New", monospace; font-size: .9em; }
+            .pasteCollectionsPage .bc-counter { font-size: 1.1em; margin: .75em 0; }
+            .pasteCollectionsPage .bc-warning { padding: .6em .8em; border-left: .3em solid #db9a04; background: rgba(219,154,4,.15); margin: .5em 0; }
+            .pasteCollectionsPage .bc-hidden { display: none !important; }
+            .pasteCollectionsPage .bc-table input[type=checkbox] { width: 1.2em; height: 1.2em; cursor: pointer; }
+            .pasteCollectionsPage .bc-seerr { display: flex; flex-wrap: wrap; align-items: center; gap: .4em .6em; }
+            .pasteCollectionsPage .bc-seerr:not(:first-child) { margin-top: .2em; }
+            .pasteCollectionsPage .bc-seerr select { max-width: 22em; }
+            .pasteCollectionsPage .bc-seerr .emby-button { margin: 0; padding: .3em .8em; font-size: .85em; }
+            .pasteCollectionsPage .bc-s-Requested { background: rgba(46,160,67,.35); }
+            .pasteCollectionsPage .bc-s-AlreadyRequested, .pasteCollectionsPage .bc-s-AlreadyAvailable { background: rgba(128,128,128,.3); }
+            .pasteCollectionsPage .bc-s-Failed { background: rgba(203,36,49,.4); }
+            .pasteCollectionsPage .bc-seerr-status { margin-top: .6em; }
         </style>
         <div data-role="content">
             <div class="content-primary">
                 <div class="verticalSection">
                     <div class="sectionTitleContainer flex align-items-center">
-                        <h2 class="sectionTitle">Batch Collections</h2>
+                        <h2 class="sectionTitle">Paste Collections</h2>
                     </div>
                     <p class="fieldDescription">Paste a list of titles, one per line, with an optional year such as <code>The Lion King (1994)</code>. Preview shows what matches your library; nothing changes until you click Apply.</p>
                 </div>
@@ -263,7 +263,7 @@
                 var pluginId = 'd7904f73-f7e5-4b0a-ae99-a33d1afd11b1';
                 var maxLines = 5000;
                 var maxChars = 1000000;
-                var page = document.querySelector('#BatchCollectionsPage');
+                var page = document.querySelector('#PasteCollectionsPage');
                 var $ = function (selector) { return page.querySelector(selector); };
 
                 var statusInfo = {
@@ -303,7 +303,7 @@
                 }
 
                 function alertMessage(message) {
-                    Dashboard.alert({ title: 'Batch Collections', message: message });
+                    Dashboard.alert({ title: 'Paste Collections', message: message });
                 }
 
                 function countLines(text) {
@@ -356,7 +356,7 @@
                 }
 
                 function loadCollections() {
-                    return ApiClient.ajax({ type: 'GET', url: ApiClient.getUrl('BatchCollections/Collections'), dataType: 'json' })
+                    return ApiClient.ajax({ type: 'GET', url: ApiClient.getUrl('PasteCollections/Collections'), dataType: 'json' })
                         .then(function (list) {
                             state.collections = list || [];
                             var datalist = $('#bcCollectionNames');
@@ -507,7 +507,7 @@
                     rememberOptions();
                     var mediaTypes = $('#bcMediaTypes').value;
                     Dashboard.showLoadingMsg();
-                    post('BatchCollections/Preview', {
+                    post('PasteCollections/Preview', {
                         List: list,
                         CollectionName: name,
                         MediaTypes: $('#bcMediaTypes').value,
@@ -728,7 +728,7 @@
                     rememberOptions();
                     $('#bcApply').disabled = true;
                     Dashboard.showLoadingMsg();
-                    post('BatchCollections/Apply', {
+                    post('PasteCollections/Apply', {
                         CollectionName: name,
                         LockMetadata: $('#bcLock').checked,
                         ItemIds: ids
@@ -860,7 +860,7 @@
                 function onCopyReport() {
                     if (!state.lastReport) { return; }
                     var r = state.lastReport.response;
-                    var out = ['Batch Collections report: ' + r.CollectionName, (r.Created ? 'Created' : 'Updated') + ': ' + r.Added + ' added, ' + r.AlreadyPresent + ' already present', ''];
+                    var out = ['Paste Collections report: ' + r.CollectionName, (r.Created ? 'Created' : 'Updated') + ': ' + r.Added + ' added, ' + r.AlreadyPresent + ' already present', ''];
                     state.lastReport.rows.forEach(function (row) {
                         out.push(row.line.LineNumber + '\t' + row.line.Raw.trim() + '\t' + row.outcome + (row.items.length ? '\t' + row.items.map(shortLabel).join(', ') : ''));
                     });
@@ -986,7 +986,7 @@
                                 chunk.forEach(function (item) { delete state.seerr[item.LineNumber]; });
                                 return null;
                             }
-                            return post('BatchCollections/Seerr/Request', { Items: chunk }).then(function (results) {
+                            return post('PasteCollections/Seerr/Request', { Items: chunk }).then(function (results) {
                                 (results || []).forEach(function (r) { state.seerr[r.LineNumber] = r; });
                                 done += chunk.length;
                                 state.seerrProgress = 'Requesting… ' + done + ' of ' + items.length;
@@ -1031,7 +1031,7 @@
                 function onSeerrTest() {
                     var status = $('#bcSeerrStatus');
                     status.textContent = 'Testing…';
-                    post('BatchCollections/Seerr/Test', { Url: $('#bcSeerrUrl').value.trim(), ApiKey: $('#bcSeerrKey').value.trim() }).then(function (response) {
+                    post('PasteCollections/Seerr/Test', { Url: $('#bcSeerrUrl').value.trim(), ApiKey: $('#bcSeerrKey').value.trim() }).then(function (response) {
                         var unsaved = state.config && ($('#bcSeerrUrl').value.trim() !== (state.config.SeerrUrl || '') || $('#bcSeerrKey').value.trim() !== (state.config.SeerrApiKey || ''));
                         status.textContent = response.Message + (response.Ok && unsaved ? ' Click Save to use these settings.' : '');
                     }, function (err) {

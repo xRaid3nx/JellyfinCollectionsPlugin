@@ -19,7 +19,7 @@ Where the real Jellyfin 12.2.0 packages or this machine differed from the prompt
 
 ## Plugin surface
 
-- **Page `Name` is `BatchCollections`** (used in the URL `configurationpage?name=BatchCollections`), and `DisplayName` is "Batch Collections" (shown in the sidebar). `EnableInMainMenu` places it in the dashboard sidebar.
+- **Page `Name` is `PasteCollections`** (used in the URL `configurationpage?name=PasteCollections`), and `DisplayName` is "Paste Collections" (shown in the sidebar). `EnableInMainMenu` places it in the dashboard sidebar.
 - **Presets and last-used options use the standard plugin configuration API** (`ApiClient.getPluginConfiguration` / `updatePluginConfiguration`), not a custom endpoint, so they're stored and backed up like any other plugin setting.
 - **Admin policy is `RequiresElevation`**, which is still the policy name in 12.2. It's verified by the smoke test (anonymous → 401, non-admin → 403).
 

@@ -13,7 +13,7 @@
 param(
   [Parameter(Mandatory)] [string]$Version,
   [string]$JellyfinVersion = '12.2.0',
-  [string]$Repo = 'xRaid3nx/JellyfinCollectionsPlugin',
+  [string]$Repo = 'xRaid3nx/PasteCollections',
   [string]$Notes = ''
 )
 
@@ -40,15 +40,15 @@ try {
 
   Write-Host "==> Packaging"
   & (Join-Path $PSScriptRoot 'package.ps1') -Version $Version -JellyfinVersion $JellyfinVersion | Out-Host
-  $name = "batch-collections_${Version}_jf$JellyfinVersion.zip"
+  $name = "paste-collections_${Version}_jf$JellyfinVersion.zip"
   $zip = Join-Path $repoRoot "artifacts\$name"
   $md5 = (Get-FileHash -LiteralPath $zip -Algorithm MD5).Hash.ToLowerInvariant()
 
   Write-Host "==> Pushing commits and creating GitHub release $tag"
   Invoke-Native 'git push' { git push origin HEAD }
-  if (-not $Notes) { $Notes = "Batch Collections $Version for Jellyfin $JellyfinVersion. See CHANGELOG.md." }
+  if (-not $Notes) { $Notes = "Paste Collections $Version for Jellyfin $JellyfinVersion. See CHANGELOG.md." }
   $head = git rev-parse HEAD
-  Invoke-Native 'gh release create' { gh release create $tag $zip --repo $Repo --target $head --title "Batch Collections $Version" --notes $Notes }
+  Invoke-Native 'gh release create' { gh release create $tag $zip --repo $Repo --target $head --title "Paste Collections $Version" --notes $Notes }
   Invoke-Native 'git fetch tag' { git fetch origin "refs/tags/${tag}:refs/tags/$tag" --quiet }
 
   Write-Host "==> Updating manifest.json"

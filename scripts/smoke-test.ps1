@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  End-to-end test of Batch Collections against a throwaway Jellyfin instance.
+  End-to-end test of Paste Collections against a throwaway Jellyfin instance.
 
 .DESCRIPTION
   Starts a SEPARATE Jellyfin process from your install (default D:\Apps\Jellyfin\jellyfin.exe) with its own data
@@ -28,7 +28,7 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $sandbox = Join-Path $repoRoot 'artifacts\sandbox'
 $base = "http://localhost:$Port"
 $pluginGuid = 'd7904f73-f7e5-4b0a-ae99-a33d1afd11b1'
-$authBase = 'MediaBrowser Client="BatchCollectionsSmokeTest", Device="smoke", DeviceId="batch-collections-smoke", Version="1.0"'
+$authBase = 'MediaBrowser Client="PasteCollectionsSmokeTest", Device="smoke", DeviceId="paste-collections-smoke", Version="1.0"'
 $script:failures = 0
 
 function Step([string]$m) { Write-Host "==> $m" -ForegroundColor Cyan }
@@ -85,7 +85,7 @@ NewFakeMedia (Join-Path $shows 'DuckTales (2017)\Season 1\DuckTales S01E01.mkv')
 Step 'Building and installing the plugin into the sandbox'
 & dotnet build (Join-Path $repoRoot 'src\Jellyfin.Plugin.Collections\Jellyfin.Plugin.Collections.csproj') -c Release "-p:JellyfinVersion=$JellyfinVersion" --nologo -v quiet
 if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
-$pluginDir = Join-Path $data 'plugins\Batch Collections_1.0.0.0'
+$pluginDir = Join-Path $data 'plugins\Paste Collections_1.0.0.0'
 New-Item -ItemType Directory -Force -Path $pluginDir | Out-Null
 Copy-Item (Join-Path $repoRoot 'src\Jellyfin.Plugin.Collections\bin\Release\net10.0\Jellyfin.Plugin.Collections.dll') $pluginDir
 
@@ -135,22 +135,22 @@ try {
   $plugin = (Api GET 'Plugins' $null $token) | Where-Object { ($_.Id -replace '-', '') -eq ($pluginGuid -replace '-', '') }
   Check ($null -ne $plugin -and $plugin.Status -eq 'Active') "plugin status is Active (got '$($plugin.Status)')"
   $pages = Api GET 'web/ConfigurationPages?enableInMainMenu=true' $null $token
-  $page = $pages | Where-Object { $_.Name -eq 'BatchCollections' }
+  $page = $pages | Where-Object { $_.Name -eq 'PasteCollections' }
   Check ($null -ne $page) 'dashboard page is in the main menu'
-  Check ($page.DisplayName -eq 'Batch Collections') "menu display name is 'Batch Collections'"
-  $html = (Invoke-WebRequest -UseBasicParsing -Uri "$base/web/ConfigurationPage?name=BatchCollections" -Headers @{ Authorization = "$authBase, Token=`"$token`"" }).Content
-  Check ($html -match 'BatchCollectionsPage') 'dashboard page HTML is served'
+  Check ($page.DisplayName -eq 'Paste Collections') "menu display name is 'Paste Collections'"
+  $html = (Invoke-WebRequest -UseBasicParsing -Uri "$base/web/ConfigurationPage?name=PasteCollections" -Headers @{ Authorization = "$authBase, Token=`"$token`"" }).Content
+  Check ($html -match 'PasteCollectionsPage') 'dashboard page HTML is served'
 
   Step 'Security'
-  Check ((StatusOf GET 'BatchCollections/Collections') -eq 401) 'anonymous call is rejected (401)'
+  Check ((StatusOf GET 'PasteCollections/Collections') -eq 401) 'anonymous call is rejected (401)'
   $viewer = Api POST 'Users/New' @{ Name = 'viewer'; Password = 'viewer' } $token
   $viewerToken = (Api POST 'Users/AuthenticateByName' @{ Username = 'viewer'; Pw = 'viewer' }).AccessToken
-  Check ((StatusOf GET 'BatchCollections/Collections' $null $viewerToken) -eq 403) 'non-admin call is rejected (403)'
-  Check ((StatusOf POST 'BatchCollections/Apply' @{ CollectionName = 'x'; ItemIds = @() } $viewerToken) -eq 403) 'non-admin Apply is rejected (403)'
+  Check ((StatusOf GET 'PasteCollections/Collections' $null $viewerToken) -eq 403) 'non-admin call is rejected (403)'
+  Check ((StatusOf POST 'PasteCollections/Apply' @{ CollectionName = 'x'; ItemIds = @() } $viewerToken) -eq 403) 'non-admin Apply is rejected (403)'
 
   Step 'Preview'
   $list = "# Disney test`r`nThe Lion King (1994)`r`nThe Lion King`r`nAladdin 1992`r`nFrozen 2`r`nWALL$([char]0x00B7)E`r`nMoana`r`nmoana`r`nTreasure Planet (2002)`r`nDuckTales"
-  $preview = Api POST 'BatchCollections/Preview' @{ List = $list; CollectionName = 'Disney Classics'; MediaTypes = 'Both'; YearTolerance = 0; Fuzzy = $true } $token
+  $preview = Api POST 'PasteCollections/Preview' @{ List = $list; CollectionName = 'Disney Classics'; MediaTypes = 'Both'; YearTolerance = 0; Fuzzy = $true } $token
   $byLine = @{}; $preview.Lines | ForEach-Object { $byLine[[int]$_.LineNumber] = $_ }
   Check ($byLine[2].Status -eq 'Matched') "'The Lion King (1994)' -> Matched"
   Check ($byLine[3].Status -eq 'Ambiguous' -and $byLine[3].Candidates.Count -eq 2) "'The Lion King' -> Ambiguous with 2 candidates"
@@ -164,16 +164,16 @@ try {
   Check (-not $preview.Collection.Exists) 'collection does not exist yet'
   $ids = @($preview.Lines | Where-Object { $_.Selected } | ForEach-Object { $_.SelectedId })
   Check ($ids.Count -eq 6) "6 rows pre-selected (got $($ids.Count))"
-  Check ((StatusOf POST 'BatchCollections/Preview' @{ List = ''; CollectionName = 'x' } $token) -eq 400) 'empty list -> 400'
-  Check ((StatusOf POST 'BatchCollections/Preview' @{ List = 'Moana'; CollectionName = '   ' } $token) -eq 400) 'blank name -> 400'
+  Check ((StatusOf POST 'PasteCollections/Preview' @{ List = ''; CollectionName = 'x' } $token) -eq 400) 'empty list -> 400'
+  Check ((StatusOf POST 'PasteCollections/Preview' @{ List = 'Moana'; CollectionName = '   ' } $token) -eq 400) 'blank name -> 400'
 
   Step 'Apply'
-  $apply = Api POST 'BatchCollections/Apply' @{ CollectionName = 'Disney Classics'; LockMetadata = $false; ItemIds = $ids + @([guid]::NewGuid().ToString()) } $token
+  $apply = Api POST 'PasteCollections/Apply' @{ CollectionName = 'Disney Classics'; LockMetadata = $false; ItemIds = $ids + @([guid]::NewGuid().ToString()) } $token
   Check ($apply.Created -and $apply.Added -eq 6) "created collection with 6 items (created=$($apply.Created), added=$($apply.Added))"
   Check (@($apply.Failed).Count -eq 1) 'unknown id rejected and reported'
-  $again = Api POST 'BatchCollections/Apply' @{ CollectionName = 'disney classics'; ItemIds = $ids } $token
+  $again = Api POST 'PasteCollections/Apply' @{ CollectionName = 'disney classics'; ItemIds = $ids } $token
   Check (-not $again.Created -and $again.Added -eq 0 -and $again.AlreadyPresent -eq 6) "re-run adds nothing (added=$($again.Added), alreadyPresent=$($again.AlreadyPresent))"
-  $collections = Api GET 'BatchCollections/Collections' $null $token
+  $collections = Api GET 'PasteCollections/Collections' $null $token
   $dc = $collections | Where-Object { $_.Name -eq 'Disney Classics' }
   Check (@($dc).Count -eq 1 -and $dc.ItemCount -eq 6) "Collections endpoint lists 'Disney Classics' with 6 items"
   # Jellyfin saves collection members in the background, so give it a few seconds.
@@ -183,13 +183,13 @@ try {
     Start-Sleep -Milliseconds 500
   }
   Check ($members.TotalRecordCount -eq 6) "Jellyfin's own Items API shows 6 items in the collection (got $($members.TotalRecordCount))"
-  $rerun = Api POST 'BatchCollections/Preview' @{ List = $list; CollectionName = 'Disney Classics'; MediaTypes = 'Both' } $token
+  $rerun = Api POST 'PasteCollections/Preview' @{ List = $list; CollectionName = 'Disney Classics'; MediaTypes = 'Both' } $token
   $already = @($rerun.Lines | Where-Object { $_.Status -eq 'AlreadyInCollection' }).Count
   Check ($already -eq 6) "second preview marks the 6 added rows as AlreadyInCollection (got $already)"
   Check (-not ($rerun.Lines | Where-Object { $_.Selected })) 'second preview pre-selects nothing'
 
   $log = Get-ChildItem (Join-Path $sandbox 'log') -Filter '*.log' | Sort-Object LastWriteTime | Select-Object -Last 1
-  $pluginLines = Select-String -Path $log.FullName -Pattern 'Batch Collections' | Select-Object -First 8
+  $pluginLines = Select-String -Path $log.FullName -Pattern 'Paste Collections' | Select-Object -First 8
   Step 'Plugin log lines'
   $pluginLines | ForEach-Object { Write-Host "    $($_.Line)" }
   $errors = Select-String -Path $log.FullName -Pattern '\[ERR\] \[\d+\] Jellyfin\.Plugin\.Collections'

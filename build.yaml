@@ -1,5 +1,5 @@
 ---
-name: "Batch Collections"
+name: "Paste Collections"
 guid: "d7904f73-f7e5-4b0a-ae99-a33d1afd11b1"
 version: "1.1.1.0"
 targetAbi: "12.2.0.0"
@@ -7,7 +7,7 @@ framework: "net10.0"
 overview: "Add many movies and shows to a collection at once by pasting a list of titles."
 description: >
   Paste a list of titles (one per line, optional year), type a collection name and click Preview.
-  Batch Collections matches each line against your library, handles remakes that share a title,
+  Paste Collections matches each line against your library, handles remakes that share a title,
   name variants and close spellings, and shows you exactly what it found. Apply adds the confirmed
   items to the collection (creating it if needed). Titles that aren't in your library are reported.
 category: "General"

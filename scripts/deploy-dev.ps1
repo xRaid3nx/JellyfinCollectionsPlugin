@@ -1,11 +1,11 @@
 <#
 .SYNOPSIS
-  Builds Batch Collections and installs it into the local Jellyfin server for testing.
+  Builds Paste Collections and installs it into the local Jellyfin server for testing.
 
 .DESCRIPTION
   1. dotnet build -c Release
   2. Stops Jellyfin (Windows service if -ServiceName is given and exists; otherwise the jellyfin.exe process)
-  3. Copies Jellyfin.Plugin.Collections.dll, thumb.png and meta.json to <PluginsDir>\Batch Collections_<version>\
+  3. Copies Jellyfin.Plugin.Collections.dll, thumb.png and meta.json to <PluginsDir>\Paste Collections_<version>\
   4. Starts Jellyfin again the same way it was running (same command line), or via the tray app.
 
   Jellyfin usually runs elevated, so run this from an elevated PowerShell if stopping it fails.
@@ -33,7 +33,7 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $project = Join-Path $repoRoot 'src\Jellyfin.Plugin.Collections\Jellyfin.Plugin.Collections.csproj'
 $pluginGuid = 'd7904f73-f7e5-4b0a-ae99-a33d1afd11b1'
-$pluginName = 'Batch Collections'
+$pluginName = 'Paste Collections'
 
 function Write-Step([string]$message) { Write-Host "==> $message" -ForegroundColor Cyan }
 function Write-Warn([string]$message) { Write-Host "    $message" -ForegroundColor Yellow }
@@ -150,6 +150,6 @@ if ($NoRestart) {
 }
 
 Write-Host ''
-Write-Host 'Done. In Jellyfin: Dashboard > Plugins should list "Batch Collections" as Active,' -ForegroundColor Green
-Write-Host 'and "Batch Collections" appears in the dashboard sidebar.' -ForegroundColor Green
-Write-Host "Logs: $(Join-Path $DataDir 'log')  (look for lines starting with 'Batch Collections:')"
+Write-Host 'Done. In Jellyfin: Dashboard > Plugins should list "Paste Collections" as Active,' -ForegroundColor Green
+Write-Host 'and "Paste Collections" appears in the dashboard sidebar.' -ForegroundColor Green
+Write-Host "Logs: $(Join-Path $DataDir 'log')  (look for lines starting with 'Paste Collections:')"

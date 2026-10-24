@@ -70,5 +70,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
-          name: Batch Collections ${{ needs.prepare.outputs.version }}
+          name: Paste Collections ${{ needs.prepare.outputs.version }}
           files: dist/*.zip
